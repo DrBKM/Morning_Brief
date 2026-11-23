@@ -107,7 +107,7 @@ def main():
     if not ANTHROPIC_API_KEY:
         print("[error] ANTHROPIC_API_KEY not set", file=sys.stderr)
         sys.exit(1)
-
+    print(f"[info] key starts {ANTHROPIC_API_KEY[:13]}… length {len(ANTHROPIC_API_KEY)}")
     headlines = fetch_headlines()
     print(f"[info] fetched {len(headlines)} headlines")
 
