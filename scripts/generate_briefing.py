@@ -167,8 +167,11 @@ def claude(prompt, model, max_tokens=1500, search=False, system=None):
             body["tools"] = tools
         if system:
             body["system"] = system
-        r = requests.post("https://api.anthropic.com/v1/messages", timeout=240, json=body, headers={
-            "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+            hdr = {"Authorization": "Bearer " + API_KEY, "anthropic-version": "2023-06-01",
+               "content-type": "application/json"}
+        if os.environ.get("ANTHROPIC_WORKSPACE_ID"):
+            hdr["anthropic-workspace-id"] = os.environ["ANTHROPIC_WORKSPACE_ID"]
+        r = requests.post("https://api.anthropic.com/v1/messages", timeout=240, json=body, headers=hdr)
         if r.status_code != 200:
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:400]}")
         data = r.json()
@@ -327,9 +330,7 @@ def step(name, fn, *a, default=None):
 def main():
     if not API_KEY:
         log("[error] ANTHROPIC_API_KEY is not set"); sys.exit(1)
-    if not API_KEY.startswith("sk-ant-api"):
-        log("[error] ANTHROPIC_API_KEY does not look like a Claude Console API key (it should start "
-            "'sk-ant-api03-'). Create one at platform.claude.com -> API keys."); sys.exit(1)
+    
 
     out = {"generated_at": datetime.now(timezone.utc).isoformat(), "local_area": LOCAL_AREA}
 
