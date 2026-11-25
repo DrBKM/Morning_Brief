@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>8:30 Desk — Morning Market Briefing</title>
+<title>8:30 Desk — Morning Briefing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -87,6 +87,24 @@
 
   footer{text-align:center; color:var(--faint); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:10px;}
   a{color:var(--blue); text-decoration:none;}
+
+  .feed{list-style:none;}
+  .feed li{padding:10px 0; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .feed li:last-child{border-bottom:none;}
+  .feed .t{color:var(--ink); font-weight:600;}
+  .feed a.t:hover{color:var(--amber);}
+  .feed .m{color:var(--muted); font-size:12.5px; margin-top:2px;}
+  .feed .w{color:#C9D3DC; font-size:13px; margin-top:3px;}
+  .pill{display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:3px; margin-right:6px;
+    font-family:'IBM Plex Mono',monospace; border:1px solid var(--border); color:var(--muted);}
+  .pill.hot{color:var(--red); border-color:rgba(255,95,95,.4);} .pill.go{color:var(--green); border-color:rgba(62,209,140,.35);}
+  .pill.amb{color:var(--amber); border-color:rgba(232,163,61,.4);}
+  .lockbox{display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:12px; background:var(--panel2);
+    border:1px dashed var(--border); border-radius:5px; font-size:13px; color:var(--muted);}
+  .lockbox input[type=password]{background:var(--bg); border:1px solid var(--border); color:var(--ink);
+    padding:6px 10px; border-radius:4px; width:220px;}
+  .lockbox button,.btnsm{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:12px;}
+  .empty{color:var(--faint); font-size:13px;}
 </style>
 </head>
 <body>
@@ -94,7 +112,7 @@
 <header>
   <div class="brand">
     <h1>8:30 <span>Desk</span></h1>
-    <p>Pre-market briefing for Indian equity &amp; option traders</p>
+    <p>Markets · physics jobs · research · local events · tasks &amp; mail</p>
   </div>
   <div class="clockbar">
     <div class="item"><span class="lbl">IST NOW</span><span class="val" id="istClock">--:--:--</span></div>
@@ -114,15 +132,15 @@
 
   <section class="card span8">
     <h2>1 · Overnight Global Events &amp; Sentiment <span class="tag manual" id="tagGlobal">fill in daily</span></h2>
-    <p class="sub">Auto-filled by GitHub Actions at 8:15 AM IST from RSS headlines — edit freely, it's overwritten fresh each morning.</p>
-    <textarea id="notesGlobal" placeholder="e.g. Middle East tensions eased overnight; US jobless claims came in below estimate, risk-on tone; oil giving back Tuesday's spike...">Run the GitHub Action (or wait for tomorrow's 8:15 AM run) to auto-fill this panel.</textarea>
+    <p class="sub">Auto-filled by GitHub Actions at 8:05 AM IST from RSS headlines — edit freely, it's overwritten fresh each morning.</p>
+    <textarea id="notesGlobal" placeholder="e.g. Middle East tensions eased overnight; US jobless claims came in below estimate, risk-on tone; oil giving back Tuesday's spike...">Run the GitHub Action (or wait for tomorrow's 8:05 AM run) to auto-fill this panel.</textarea>
     <ul class="stock-list" id="headlineList" style="margin-top:10px;"></ul>
   </section>
 
   <section class="card span4">
     <h2>2 · Central Banks &amp; Rate Moves <span class="tag manual" id="tagRates">fill in daily</span></h2>
     <p class="sub">Fed / ECB / BoE / RBI decisions, dot-plot shifts, speeches.</p>
-    <textarea id="notesRates" placeholder="e.g. Fed held rates, dovish tilt in minutes; RBI next MPC on...">Run the GitHub Action (or wait for tomorrow's 8:15 AM run) to auto-fill this panel.</textarea>
+    <textarea id="notesRates" placeholder="e.g. Fed held rates, dovish tilt in minutes; RBI next MPC on...">Run the GitHub Action (or wait for tomorrow's 8:05 AM run) to auto-fill this panel.</textarea>
   </section>
 
   <section class="card span6">
@@ -171,7 +189,7 @@
     <div class="ticker-row"><span class="name">Crude (WTI, USO proxy)</span><span class="price" id="q_oil">—</span></div>
     <div class="ticker-row"><span class="name">USD/INR</span><span class="price" id="q_usdinr">—</span></div>
     <div class="ticker-row"><span class="name">DXY (dollar index, UUP proxy)</span><span class="price" id="q_dxy">—</span></div>
-    <textarea id="notesPolicy" placeholder="Govt policy sentiment — budget signals, RBI liquidity stance, import duty changes..." style="margin-top:12px;">Run the GitHub Action (or wait for tomorrow's 8:15 AM run) to auto-fill this panel.</textarea>
+    <textarea id="notesPolicy" placeholder="Govt policy sentiment — budget signals, RBI liquidity stance, import duty changes..." style="margin-top:12px;">Run the GitHub Action (or wait for tomorrow's 8:05 AM run) to auto-fill this panel.</textarea>
   </section>
 
   <section class="card span6">
@@ -193,6 +211,43 @@
         <div class="status" id="stLondon">to open · 1:30 PM IST</div>
       </div>
     </div>
+  </section>
+
+  <section class="card span6">
+    <h2>7 · Physics Jobs — Assistant Professor <span class="tag live" id="tagJobs">₹1 L+ · India</span></h2>
+    <p class="sub">Open posts found by Claude's web search this morning. Always check the official advert before applying.</p>
+    <ul class="feed" id="jobList"><li class="empty">Appears after the next morning run.</li></ul>
+  </section>
+
+  <section class="card span6">
+    <h2>8 · Research Radar <span class="tag live">last 7 days</span></h2>
+    <p class="sub">Nanomagnetism · Magnonics · Spintronics · AI · Quantum computing, from leading journals and arXiv.</p>
+    <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
+  </section>
+
+  <section class="card span6">
+    <h2>9 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
+    <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
+    <div class="lockbox" id="lockbox">
+      <span>🔒 Locked. Enter your passphrase:</span>
+      <input type="password" id="pp" autocomplete="current-password">
+      <label><input type="checkbox" id="ppKeep" checked> remember on this device</label>
+      <button onclick="unlock()">Unlock</button><span id="ppMsg"></span>
+    </div>
+    <ul class="feed" id="taskList"></ul>
+  </section>
+
+  <section class="card span6">
+    <h2>10 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
+    <p class="sub">Worthwhile events in the next 7 days.</p>
+    <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
+  </section>
+
+  <section class="card span12">
+    <h2>11 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
+    <p class="sub">Important or starred Gmail that may need you today. Unlock with the same passphrase above.</p>
+    <ul class="feed" id="mailList"><li class="empty">Locked.</li></ul>
+    <p class="sub" style="margin-top:10px;"><a href="#" onclick="lockAgain();return false;">Lock again / forget passphrase on this device</a></p>
   </section>
 
   <section class="card span12">
@@ -344,7 +399,7 @@ async function loadBriefing(){
       hl.innerHTML = '';
       b.headlines.slice(0,8).forEach(h=>{
         const li = document.createElement('li');
-        li.innerHTML = `<a href="${h.link}" target="_blank" style="color:var(--ink); font-size:12.5px;">${h.title}</a><span class="mono muted" style="font-size:11px;">${h.source.split('—')[0].trim()}</span>`;
+        li.innerHTML = `<a href="${safeUrl(h.link)}" target="_blank" rel="noopener" style="color:var(--ink); font-size:12.5px;">${esc(h.title)}</a><span class="mono muted" style="font-size:11px;">${esc(h.source.split('—')[0].trim())}</span>`;
         hl.appendChild(li);
       });
     }
@@ -356,6 +411,70 @@ loadKey();
 updateBias();
 fetchAll();
 loadBriefing();
+// ---------- New sections: jobs, research, events, private tasks & mail ----------
+let BRIEF = null;
+function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safeUrl(u){ return /^https?:\/\//i.test(u||'') ? esc(u) : ''; }
+function link(u,t){ const s=safeUrl(u); return s ? `<a class="t" href="${s}" target="_blank" rel="noopener">${esc(t)}</a>` : `<span class="t">${esc(t)}</span>`; }
+function fill(id, arr, row, emptyMsg){
+  const el=document.getElementById(id);
+  if(!Array.isArray(arr) || !arr.length){ el.innerHTML=`<li class="empty">${esc(emptyMsg)}</li>`; return; }
+  el.innerHTML = arr.map(row).join('');
+}
+function renderPublic(b){
+  fill('jobList', b.jobs, j=>`<li>${link(j.url, j.post||'Assistant Professor (Physics)')}
+    <div class="m">${esc(j.institution)}${j.location?' · '+esc(j.location):''}</div>
+    <div class="w"><span class="pill go">${esc(j.pay||'see advert')}</span><span class="pill hot">last date: ${esc(j.deadline||'see advert')}</span></div></li>`,
+    'No matching open posts found this morning.');
+  fill('paperList', b.research, p=>`<li><span class="pill amb">${esc(p.topic)}</span>${link(p.link, p.title)}
+    <div class="m">${esc(p.source)}</div><div class="w">${esc(p.why)}</div></li>`, 'No new papers matched this week.');
+  fill('eventList', b.events, e=>`<li>${link(e.url, e.name)}<div class="m">${esc(e.when)}${e.where?' · '+esc(e.where):''}</div>
+    <div class="w">${esc(e.why)}</div></li>`, 'No events found for the coming week.');
+  if(b.local_area) document.getElementById('tagArea').textContent = b.local_area;
+  if(!b.private){ document.getElementById('lockbox').innerHTML='<span>Tasks and emails are not set up yet (see README-setup.md).</span>'; }
+}
+const b64d = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function decryptPrivate(blob, pass){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b64d(blob.salt), iterations:blob.iter||250000, hash:'SHA-256'},
+    base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64d(blob.iv)}, key, b64d(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function renderPrivate(p){
+  document.getElementById('lockbox').style.display='none';
+  document.getElementById('tagTasks').textContent = 'unlocked'+(p.sheet?' · '+p.sheet:'');
+  const cls={overdue:'hot',today:'amb',continuing:'go'};
+  fill('taskList', p.tasks, t=>`<li><span class="pill ${cls[t.status]||''}">${esc(t.status)}</span><span class="t">${esc(t.task)}</span>
+    <div class="m">${t.due?'due '+esc(t.due):''}${t.note?(t.due?' · ':'')+esc(t.note):''}</div></li>`, 'Nothing pending today. 🎉');
+  fill('mailList', p.emails, m=>`<li><span class="pill amb">${esc(m.action)}</span>${link(m.link, m.subject||'(no subject)')}
+    <div class="m">${esc(m.from)}</div><div class="w">${esc(m.why)}</div></li>`, 'No important emails in the last 24 hours.');
+}
+async function unlock(saved){
+  if(!BRIEF || !BRIEF.private) return;
+  const pass = saved || document.getElementById('pp').value;
+  if(!pass) return;
+  try{
+    renderPrivate(await decryptPrivate(BRIEF.private, pass));
+    try{ if(!saved && document.getElementById('ppKeep').checked) localStorage.setItem('brief_pp', pass); }catch(e){}
+  }catch(e){
+    document.getElementById('ppMsg').textContent = saved ? '' : 'Wrong passphrase.';
+    if(saved){ try{ localStorage.removeItem('brief_pp'); }catch(e){} }
+  }
+}
+function lockAgain(){ try{ localStorage.removeItem('brief_pp'); }catch(e){} location.reload(); }
+document.getElementById('pp').addEventListener('keydown', e=>{ if(e.key==='Enter') unlock(); });
+async function loadExtras(){
+  try{
+    const res = await fetch('data/briefing.json', {cache:'no-store'});
+    if(!res.ok) return;
+    BRIEF = await res.json();
+    renderPublic(BRIEF);
+    let saved=null; try{ saved=localStorage.getItem('brief_pp'); }catch(e){}
+    if(saved && BRIEF.private) unlock(saved);
+  }catch(e){ console.warn('extras', e); }
+}
+loadExtras();
 </script>
 </body>
 </html>
