@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-25T15:16:50.973508+00:00",
+ "generated_at": "2026-11-25T15:48:22.805246+00:00",
  "local_area": "Purulia, West Bengal",
  "headlines": [
   {
@@ -24,7 +24,7 @@
   },
   {
    "source": "Economic Times — Markets",
-   "title": "US Stock Market Live Updates: Dow Jones plunges 1,000 pts, Nasdaq over 4% as AI rout intensifies",
+   "title": "US Stock Market Live Updates: Dow Jones plunges 800 pts, Nasdaq over 3% as AI rout intensifies",
    "link": "https://economictimes.indiatimes.com/markets/us-stocks/wall-street-guide/stock-market-live-updates-dow-jones-nasdaq-sp-500-nvidia-alphabet-amazon-anthropic-dell-inflation-fed-rate-hike-gold-treasury-yield-news-25th-november-2026/liveblog/136163404.cms"
   },
   {
@@ -41,6 +41,11 @@
    "source": "Economic Times — Markets",
    "title": "RBI may opt for 25 bps rate hike as oil eases, inflation risks persist: Baroda BNP Paribas MF CIO",
    "link": "https://economictimes.indiatimes.com/markets/stocks/news/rbi-may-opt-for-25-bps-rate-hike-as-oil-eases-inflation-risks-persist-baroda-bnp-paribas-mf-cio/articleshow/136162711.cms"
+  },
+  {
+   "source": "Economic Times — Top News",
+   "title": "Rahul Gandhi scores a legal breather in assets case",
+   "link": "https://economictimes.indiatimes.com/news/politics-and-nation/sc-sets-aside-allahabad-hc-order-on-cbi-ed-verification-of-assets-allegations-against-rahul-gandhi/articleshow/136164241.cms"
   },
   {
    "source": "Economic Times — Top News",
@@ -69,18 +74,13 @@
   },
   {
    "source": "Economic Times — Top News",
+   "title": "Beat inflation for 30 years: US bond deal ends soon",
+   "link": "https://economictimes.indiatimes.com/world/us/a-government-savings-bond-now-guarantees-youll-beat-inflation-by-1-40-for-30-years-its-best-deal-since-2006-the-window-closes-april-30-2027/articleshow/136160478.cms"
+  },
+  {
+   "source": "Economic Times — Top News",
    "title": "West Bengal's possible new name carries a long shadow",
    "link": "https://economictimes.indiatimes.com/news/politics-and-nation/new-name-for-west-bengal-a-small-change-planned-for-decades-comes-with-long-political-shadow/articleshow/136149461.cms"
-  },
-  {
-   "source": "Economic Times — Top News",
-   "title": "₹21L penalty over property sale; here’s why he wins",
-   "link": "https://economictimes.indiatimes.com/wealth/tax/20-94-lakh-tax-penalty-over-property-sale-agricultural-income-held-as-unexplained-money-by-i-t-dept-heres-why-he-wins-case-at-itat/articleshow/136148332.cms"
-  },
-  {
-   "source": "Economic Times — Top News",
-   "title": "Air India looks to shed ₹6,000 crore worth of baggage",
-   "link": "https://economictimes.indiatimes.com/industry/transportation/airlines-/-aviation/air-india-group-targets-rs-6000-crore-in-savings-as-ceo-pushes-cost-cutting-drive/articleshow/136162847.cms"
   },
   {
    "source": "CNBC — Finance",
@@ -108,7 +108,88 @@
  "policy_sentiment": "Auto-summary unavailable this run — check sources manually.",
  "stocks_to_watch": [],
  "regime_hint": "range",
- "research": [],
- "jobs": [],
- "events": []
+ "research": [
+  {
+   "topic": "Spintronics",
+   "why": "Nature Nanotechnology work pairing VO2 Mott neurons with domain-wall racetrack memory for event-driven spiking networks, a neuromorphic spintronic core that keeps temporal spike histories.",
+   "title": "Integration of Mott neurons and spintronic memories for event-driven spiking neural networks",
+   "source": "Nature Nanotechnology",
+   "link": "https://www.nature.com/articles/s41565-026-02311-0"
+  },
+  {
+   "topic": "Quantum computing",
+   "why": "Nature Physics demonstration of two-qubit gates between interacting electron qubits on solid neon, a new scalable qubit platform.",
+   "title": "Coherent manipulation of interacting electron qubits on solid neon",
+   "source": "Nature Physics",
+   "link": "https://www.nature.com/articles/s41567-026-03529-4"
+  },
+  {
+   "topic": "Magnonics",
+   "why": "PRL protocol for high-purity spin entanglement through a magnon bus that avoids the usual trade-off between coupling strength and spin decay, relevant to magnon-based quantum links.",
+   "title": "High-Purity Entanglement Mediated by Magnons Despite Weak Coupling",
+   "source": "Physical Review Letters",
+   "link": "http://link.aps.org/doi/10.1103/zmky-pr37"
+  },
+  {
+   "topic": "Nanomagnetism",
+   "why": "PRL reports giant room-temperature magnetoelectric coupling in nanocomposite thin films through strain-sensitive polarization, relevant to electric-field control of magnetism.",
+   "title": "Giant Room-Temperature Magnetoelectric Coupling Effect in Nanocomposite Thin Films via Strain-Sensitive Polarization",
+   "source": "Physical Review Letters",
+   "link": "http://link.aps.org/doi/10.1103/d83k-923y"
+  },
+  {
+   "topic": "Artificial intelligence",
+   "why": "Nature news that general-purpose LLMs (Claude, ChatGPT) can now design proteins and predict structures, abilities previously limited to specialized tools like AlphaFold.",
+   "title": "Watch out, AlphaFold: Claude and ChatGPT’s new biology skills wow scientists",
+   "source": "Nature",
+   "link": "https://www.nature.com/articles/d41586-026-03836-z"
+  },
+  {
+   "topic": "Quantum computing",
+   "why": "PRL demonstration of an orbit-qubit quantum processor in which ultracold atoms in an optical lattice store information in their positions, from the Pan group.",
+   "title": "Orbit-Qubit Quantum Processor of Ultracold Atoms",
+   "source": "Physical Review Letters",
+   "link": "http://link.aps.org/doi/10.1103/fxpf-vzxx"
+  },
+  {
+   "topic": "Magnonics",
+   "why": "PRL theory of odd-parity magnons from topological exciton condensation in the Haldane-Hubbard model, connected to altermagnetism and spin-split collective excitations.",
+   "title": "Odd-Parity Magnons in the Haldane-Hubbard Model from Topological Exciton Condensation",
+   "source": "Physical Review Letters",
+   "link": "http://link.aps.org/doi/10.1103/q1cs-j5py"
+  },
+  {
+   "topic": "Artificial intelligence",
+   "why": "Nature Machine Intelligence perspective arguing that self-driving labs need reward-function optimization and executable workflows on top of LLM hypothesis generation, relevant to autonomous materials and magnetism experiments.",
+   "title": "Enabling lab autonomy with reward functions and executable workflows",
+   "source": "Nature Machine Intelligence",
+   "link": "https://www.nature.com/articles/s42256-026-01339-0"
+  }
+ ],
+ "jobs": [
+  {
+   "post": "Assistant Professor (Grade-I/II), Department of Physics, under rolling advertisement IITD/2026/AP-2",
+   "institution": "IIT Delhi",
+   "location": "New Delhi",
+   "pay": "Grade-I: 7th CPC Level 12 (₹1,01,500–1,67,400 per sarkari-naukri.in listing). Grade-II pay: see advert.",
+   "deadline": "31 December 2026, 23:59 IST",
+   "url": "https://home.iitd.ac.in/jobs-iitd/uploads/Rollling%20Advt.%20IITD%202026-%20AP-2_w.e.f.%2017.11.2026.pdf"
+  },
+  {
+   "post": "Assistant Professor (Grade I / Grade II), Physics, rolling advertisement IISERB/DoFA/2026/01",
+   "institution": "IISER Bhopal",
+   "location": "Bhopal, Madhya Pradesh",
+   "pay": "See advert. The search results gave no Assistant Professor pay figure. Only the Professor level (Level 14A, ₹1,59,100) was stated.",
+   "deadline": "No specific deadline (rolling advertisement, applications accepted year-round)",
+   "url": "https://www.freejobalert.com/articles/iiser-bhopal-faculty-recruitment-2026-apply-online-3034419"
+  }
+ ],
+ "events": [],
+ "private": {
+  "v": 1,
+  "iter": 250000,
+  "salt": "WWulRx4U830v3VKQGVG30g==",
+  "iv": "wy0BNbA47xJjRf9A",
+  "ct": "vIALUA/UzQYErblbA5htsDz8RxQowuE+cBVSVJwjQS37NXRBPFJb4iGgVcOZgOOZtVmSzl5meSx/7V7byCPE4t4N2hBGFRYoKymLxVzW/bxCRTK546urwyRs2eqX4dPBwkXGl5GlJ8XU10qqrSAncCdGgrWKQV+xIltWDHA72RgFk99N8ejpeFFIRRNrVlpTUFErXEw5sUFAUFIKCnEQhRBBO+w6crnhfb9I5AZyfapl/SqE1jIctqR6QW/Hs6R0wAMwCaEWesMHLFhqMO+WIAI861Ceaa79ZFm8MNGUwg/aZ+SgxmjrbF0T1lnAfApITbrSeBwqJiwXdsKhP3z/"
+ }
 }
