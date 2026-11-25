@@ -217,7 +217,7 @@ Headlines:
   "policy_sentiment": "1-2 sentences on Indian policy/regulatory news, or 'No major policy news overnight.'",
   "stocks_to_watch": ["Company — one short reason", "... at most 6, only names in the headlines"],
   "regime_hint": "range" | "trend-up" | "trend-down" | "volatile"}}"""
-    text, _ = claude(prompt, MODEL, 900)
+    text, _ = claude(prompt, MODEL, 2000)
     return parse_json(text)
 
 
