@@ -2,18 +2,21 @@ name: Morning Market Briefing
 
 on:
   schedule:
-    # 8:15 AM IST = 2:45 UTC, Monday–Friday. GitHub's scheduler can run a
-    # few minutes late during peak load, so this targets 8:15 to comfortably
-    # land before 8:30. India does not observe DST, so this offset is fixed.
-    - cron: '45 2 * * 1-5'
-  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+    # Every day at 8:05 AM IST (02:35 UTC) so the page is ready by 8:30.
+    - cron: '35 2 * * *'
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: briefing
+  cancel-in-progress: false
+
 jobs:
   build-briefing:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +30,12 @@ jobs:
       - name: Generate briefing
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GAS_URL: ${{ secrets.GAS_URL }}
+          GAS_TOKEN: ${{ secrets.GAS_TOKEN }}
+          BRIEF_PASSPHRASE: ${{ secrets.BRIEF_PASSPHRASE }}
+          BRIEF_LOCAL_AREA: ${{ vars.BRIEF_LOCAL_AREA }}
+          BRIEF_MODEL: ${{ vars.BRIEF_MODEL }}
+          BRIEF_SEARCH_MODEL: ${{ vars.BRIEF_SEARCH_MODEL }}
         run: python scripts/generate_briefing.py
 
       - name: Commit updated briefing.json
@@ -38,5 +47,6 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Auto-update morning briefing $(date -u +%F)"
+            git pull --rebase
             git push
           fi
