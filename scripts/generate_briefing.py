@@ -167,8 +167,8 @@ def claude(prompt, model, max_tokens=1500, search=False, system=None):
             body["tools"] = tools
         if system:
             body["system"] = system
-            hdr = {"Authorization": "Bearer " + API_KEY, "anthropic-version": "2023-06-01",
-               "content-type": "application/json"}
+        hdr = {"Authorization": "Bearer " + API_KEY, "anthropic-version": "2023-06-01",
+              "content-type": "application/json"}
         if os.environ.get("ANTHROPIC_WORKSPACE_ID"):
             hdr["anthropic-workspace-id"] = os.environ["ANTHROPIC_WORKSPACE_ID"]
         r = requests.post("https://api.anthropic.com/v1/messages", timeout=240, json=body, headers=hdr)
