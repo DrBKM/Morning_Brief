@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-25T10:53:50.762555+00:00",
+  "generated_at": "2026-11-25T10:58:10.954609+00:00",
   "headlines": [
     {
       "source": "Economic Times \u2014 Markets",
@@ -102,16 +102,16 @@
       "link": "https://www.moneycontrol.com/news/local-markets/sensex-nifty-extend-gains-to-3rd-day-q4-results-to-guide-stock-specific-action_17530901.html"
     }
   ],
-  "global_events": "Risk sentiment is mixed as Trump signals fresh tariffs targeting India, China, and other nations, drawing a sharp rebuke from Beijing which labeled the move as political posturing. Japan's core inflation surged to its highest level this year after energy subsidies expired, adding to global inflation concerns. Meanwhile, Hewlett Packard Enterprise saw its worst-ever single-day stock decline of 17%, reflecting pockets of significant weakness in US tech.",
-  "central_banks": "The RBI policy verdict is imminent and is being closely watched by markets, with Indian government bonds edging up modestly as crude oil prices stabilized ahead of the decision. Japan's inflation data reinforces expectations that the Bank of Japan may need to maintain its policy tightening bias, adding a global rate-sensitive dimension to the session.",
-  "policy_sentiment": "Trump's announcement of additional tariffs on India alongside China and other trading partners is a key overnight risk for Indian exporters and overall market sentiment. Separately, the RBI is reportedly investigating a potential $2 million loophole in foreign exchange transactions by importers, signaling heightened regulatory scrutiny on FX dealings.",
+  "global_events": "Risk sentiment is cautiously mixed overnight as the US signals additional tariffs targeting India, China, and other nations, while Beijing dismissed the move as politically motivated rather than economically justified. Japan's core inflation climbed to its highest level this year after energy subsidies expired, adding pressure on the Bank of Japan's policy path. Meanwhile, Nvidia's Jensen Huang rejoins the ranks of high-profile executive comebacks, underscoring continued optimism around AI-driven tech demand.",
+  "central_banks": "All eyes in India are on the upcoming RBI policy verdict, with domestic bond yields edging marginally upward even as crude oil prices stabilised, suggesting markets are pricing in a cautious but potentially accommodative stance. Japan's surging consumer prices complicate the global central bank narrative, keeping rate-path uncertainty elevated across major economies.",
+  "policy_sentiment": "The Trump administration's renewed tariff threats against India alongside China and others could weigh on export-oriented sectors and currency sentiment, though the rupee has already staged a sharp recovery of 56 paise to 92.29 against the dollar. Separately, the RBI is reportedly investigating a potential multi-million dollar loophole in how importers structure foreign exchange transactions, signalling tighter regulatory scrutiny on FX flows.",
   "stocks_to_watch": [
-    "Maruti Suzuki \u2014 bonus issue update in focus, likely to attract price-sensitive trader activity",
-    "Tata Consumer Products \u2014 Q4 net profit declined 19% year-on-year though a dividend of Rs 7.75 per share was announced",
-    "Tata Elxsi \u2014 quarterly profit and revenue slipped sequentially but a Rs 70 per share dividend was declared",
-    "ICICI Prudential Life Insurance \u2014 Q4 net profit dropped 26% to Rs 174 crore; management pivoting focus toward absolute VNB growth",
-    "PB Fintech \u2014 flagged as flashing an RSI uptrend signal, suggesting potential near-term momentum",
-    "APL Apollo Tubes \u2014 closed below VWAP and is among stocks showing negative technical signals including a breach of the 200-day moving average"
+    "Maruti Suzuki \u2014 Bonus issue update in focus; watch for price adjustment and volume spike at open",
+    "Tata Consumer Products \u2014 Q4 net profit declined 19% YoY though a dividend of Rs 7.75 declared; expect selling pressure",
+    "ICICI Prudential Life Insurance \u2014 Q4 profit dropped 26% to Rs 174 crore; dividend announced but weak earnings may weigh",
+    "Tata Elxsi \u2014 Sequential decline in both revenue and profit in Q4; dividend of Rs 70 per share may provide partial cushion",
+    "APL Apollo Tubes \u2014 Closed below VWAP in a Nifty500 screen, flagging short-term bearish price action",
+    "PB Fintech \u2014 RSI uptrend signal identified in technical screener; could attract momentum buying interest"
   ],
-  "regime_hint": "volatile"
+  "regime_hint": "range"
 }
