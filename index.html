@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>8:30 Desk — Morning Briefing</title>
 <meta name="description" content="Daily 8:30 AM briefing: markets, watchlist, trade journal, physics jobs, research, events and tasks.">
 <meta name="theme-color" content="#0A0E13">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="8:30 Desk">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:title" content="8:30 Desk — Morning Briefing">
 <meta property="og:description" content="Your morning briefing, ready before the bell.">
 <meta property="og:image" content="https://drbkm.github.io/Morning_Brief/assets/og-image.png">
@@ -77,7 +82,31 @@
   }
 
   main{padding:24px 28px; display:grid; grid-template-columns:repeat(12,1fr); gap:18px; max-width:1400px; margin:0 auto;}
-  .card{scroll-margin-top:110px;}
+  .card,.band{scroll-margin-top:110px;}
+  main>*{min-width:0;} .jform>*{min-width:0; width:100%;}
+  .installbar{display:flex; align-items:center; gap:10px; padding:10px 16px; background:#16202A; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .installbar[hidden]{display:none;}
+  .installbar span{flex:1;}
+  .installbar button{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px; border-radius:4px; font-size:12.5px; cursor:pointer;}
+  .installbar button.x{background:transparent; color:var(--muted); padding:6px 8px;}
+  .tabbar{display:none;}
+  @media(max-width:760px){
+    body{padding-bottom:calc(76px + env(safe-area-inset-bottom));}
+    header{position:static; padding-top:calc(14px + env(safe-area-inset-top));}
+    .brand p{display:none;} .brand h1{font-size:24px;}
+    header .clockbar .item:nth-child(n+3){display:none;}
+    .tabbar{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:20; background:rgba(10,14,19,.97); backdrop-filter:blur(8px);
+      border-top:1px solid var(--border); padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+    .tabbar a{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); text-decoration:none; font-size:10.5px; padding:4px 0;}
+    .tabbar a:active,.tabbar a.on{color:var(--amber);}
+    .tabbar svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+    .card,.band{scroll-margin-top:12px;}
+    .band{min-height:70px; padding:12px 16px;} .band h3{font-size:21px;}
+    main{gap:14px;}
+    .wtbl{font-size:12.5px;}
+    .idx-grid{grid-template-columns:1fr !important;}
+  }
+  @media(display-mode:standalone){ .hero-chips.quick a{padding:7px 12px;} }
   .band{border:1px solid var(--border); border-radius:6px; padding:16px 20px; min-height:84px; margin-top:8px;
     background-color:#10161D; background-size:cover; background-position:right center; background-repeat:no-repeat; position:relative; overflow:hidden;}
   .band::before{content:""; position:absolute; inset:0; background:linear-gradient(90deg,#10161D 0%,rgba(16,22,29,.85) 40%,rgba(16,22,29,0) 70%);}
@@ -88,6 +117,7 @@
   .hero-chips.quick span{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.06em; margin:0 2px 0 6px;}
   .hero-chips.quick span:first-child{margin-left:0;}
   .spark{height:150px; margin-top:12px;}
+  .idx-box{min-width:0;} .spark-lbl span{overflow:hidden; text-overflow:ellipsis;}
   .spark svg{width:100%; height:122px; display:block;}
   .spark-lbl{white-space:nowrap; gap:8px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--faint); margin-top:6px;}
   .card{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px 20px;}
@@ -223,6 +253,13 @@
   </div>
 </section>
 
+<div class="installbar" id="installBar" hidden>
+  <img src="assets/logo.svg" width="30" height="30" alt="">
+  <span id="installText">Install 8:30 Desk as an app on this phone.</span>
+  <button id="installBtn">Install</button>
+  <button class="x" id="installX" aria-label="Dismiss">✕</button>
+</div>
+
 <div class="keybar">
   <span>Live US/forex/commodity data via Finnhub free tier.</span>
   <input type="text" id="apiKey" placeholder="Paste your free Finnhub API key">
@@ -232,7 +269,7 @@
 
 <main>
 
-  <div class="band span12" style="background-image:url(assets/band-markets.svg)"><h3>Markets today</h3><p>Overnight news, central banks, Sensex &amp; Nifty and stocks in focus</p></div>
+  <div class="band span12" id="grp-markets" style="background-image:url(assets/band-markets.svg)"><h3>Markets today</h3><p>Overnight news, central banks, Sensex &amp; Nifty and stocks in focus</p></div>
   <section class="card span8">
     <h2>1 · Overnight Global Events &amp; Sentiment <span class="tag manual" id="tagGlobal">fill in daily</span></h2>
     <p class="sub">Auto-filled by GitHub Actions at 8:05 AM IST from RSS headlines — edit freely, it's overwritten fresh each morning.</p>
@@ -290,7 +327,7 @@
     </ul>
   </section>
 
-  <div class="band span12" style="background-image:url(assets/band-trading.svg)"><h3>My trading</h3><p>Watchlist from FFA_TIE and your trade decisions</p></div>
+  <div class="band span12" id="grp-trading" style="background-image:url(assets/band-trading.svg)"><h3>My trading</h3><p>Watchlist from FFA_TIE and your trade decisions</p></div>
   <section class="card span12" id="sec-watch">
     <h2>5 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
     <p class="sub">From your Google Sheet. Fundamentals come from Screener.in and are re-checked every 15 days (new stocks the next morning). Prices are last close; news is from the last 3 days, summarised by Claude.
@@ -322,7 +359,7 @@
     </table></div>
   </section>
 
-  <div class="band span12" style="background-image:url(assets/band-global.svg)"><h3>Global markets</h3><p>Gold, currency, bonds, crude and world indices</p></div>
+  <div class="band span12" id="grp-global" style="background-image:url(assets/band-global.svg)"><h3>Global markets</h3><p>Gold, currency, bonds, crude and world indices</p></div>
   <section class="card span6">
     <h2>7 · Gold, Currency, Bonds, Crude <span class="tag live" id="commodTag">live · finnhub</span></h2>
     <p class="sub">Auto-refreshes every 5 minutes once an API key is saved.</p>
@@ -354,7 +391,7 @@
     </div>
   </section>
 
-  <div class="band span12" style="background-image:url(assets/band-science.svg)"><h3>Science &amp; career</h3><p>Physics jobs and the week's research in your fields</p></div>
+  <div class="band span12" id="grp-science" style="background-image:url(assets/band-science.svg)"><h3>Science &amp; career</h3><p>Physics jobs and the week's research in your fields</p></div>
   <section class="card span6" id="sec-jobs">
     <h2>9 · Physics Jobs — Assistant Professor <span class="tag live" id="tagJobs">₹1 L+ · India</span></h2>
     <p class="sub">Open posts found by Claude's web search this morning. Always check the official advert before applying.</p>
@@ -367,7 +404,7 @@
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
-  <div class="band span12" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, local events and important emails</p></div>
+  <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, local events and important emails</p></div>
   <section class="card span6" id="sec-tasks">
     <h2>11 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
     <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
@@ -724,6 +761,36 @@ async function saveResult(btn){
     await loadJournal();
   }catch(e){ btn.textContent='Retry'; btn.disabled=false; console.warn(e); }
 }
+
+// ---------- web app: offline support, install prompt, active tab ----------
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn('sw',e))); }
+(function(){
+  const bar=document.getElementById('installBar'), btn=document.getElementById('installBtn'), txt=document.getElementById('installText');
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  let dismissed=false; try{ dismissed=localStorage.getItem('installDismissed')==='1'; }catch(e){}
+  if(standalone||dismissed) return;
+  let deferred=null;
+  window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferred=e; bar.hidden=false; });
+  btn.onclick=async()=>{ if(!deferred) return; deferred.prompt(); await deferred.userChoice; deferred=null; bar.hidden=true; };
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!/crios|fxios/i.test(navigator.userAgent);
+  if(ios){ txt.innerHTML='Install on iPhone: tap <b>Share</b> <span aria-hidden="true">⬆︎</span> then <b>Add to Home Screen</b>.'; btn.hidden=true; bar.hidden=false; }
+  document.getElementById('installX').onclick=()=>{ bar.hidden=true; try{ localStorage.setItem('installDismissed','1'); }catch(e){} };
+  window.addEventListener('appinstalled',()=>{ bar.hidden=true; });
+})();
+document.addEventListener('DOMContentLoaded',function(){
+  const tabs=[...document.querySelectorAll('.tabbar a')], bands=[...document.querySelectorAll('.band[id]')];
+  if(!tabs.length||!bands.length) return;
+  const mark=()=>{ let cur=bands[0].id; bands.forEach(b=>{ if(b.getBoundingClientRect().top<innerHeight*0.35) cur=b.id; });
+    tabs.forEach(t=>t.classList.toggle('on',t.getAttribute('href')==='#'+cur)); };
+  addEventListener('scroll',mark,{passive:true}); mark();
+});
 </script>
+<nav class="tabbar" aria-label="Sections">
+  <a href="#grp-markets"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Markets</a>
+  <a href="#grp-trading"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Trading</a>
+  <a href="#grp-global"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Global</a>
+  <a href="#grp-science"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></svg>Science</a>
+  <a href="#grp-day"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>My day</a>
+</nav>
 </body>
 </html>

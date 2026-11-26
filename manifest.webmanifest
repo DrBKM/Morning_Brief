@@ -1,0 +1,23 @@
+{
+  "name": "8:30 Desk — Morning Briefing",
+  "short_name": "8:30 Desk",
+  "description": "Markets, watchlist, trade journal, physics jobs, research, events and tasks: ready by 8:30 AM.",
+  "id": "./",
+  "start_url": "./?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0E13",
+  "theme_color": "#0A0E13",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Watchlist", "url": "./#sec-watch" },
+    { "name": "Trade decisions", "url": "./#sec-journal" },
+    { "name": "Tasks", "url": "./#sec-tasks" }
+  ]
+}
