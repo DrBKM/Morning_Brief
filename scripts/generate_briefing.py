@@ -371,7 +371,8 @@ def watchlist_update(watch):
     for r in rows:
         name = clean_stock(r.get("stock", ""))
         if name:
-            items.append({"row": r.get("row"), "stock": name, "why": r.get("why", ""), "heads": stock_news(name)})
+            items.append({"row": r.get("row"), "stock": name, "why": r.get("why", ""), "heads": stock_news(name),
+                          "fund": r.get("fund", ""), "checked": r.get("checked", "")})
     block = "\n".join(f"[{i}] {it['stock']} | thesis: {it['why'] or '-'} | headlines: " +
                       (" || ".join(it["heads"]) or "none") for i, it in enumerate(items))
     prompt = f"""Today is {TODAY}. These are stocks on an Indian investor's watchlist, each with the last
@@ -386,7 +387,7 @@ Be conservative: with no clear news, use "Hold" for long-term theses and "Watch"
 {block}
 
 {JSON_ONLY} Schema: {{"stocks": [{{"i": 0, "nse": "", "news": "", "tone": "", "lean": "", "why": ""}}]}}"""
-    text, _ = claude(prompt, MODEL, 5000)
+    text, _ = claude(prompt, MODEL, 9000)
     out = []
     for s in parse_json(text).get("stocks", []):
         i = s.get("i")
@@ -397,15 +398,101 @@ Be conservative: with no clear news, use "Hold" for long-term theses and "Watch"
         q = yahoo(sym + ".NS") if sym else None
         out.append({"row": it["row"], "stock": it["stock"], "why_sheet": it["why"], "nse": sym if q else "",
                     "quote": q, "news": s.get("news", ""), "tone": s.get("tone", "none"),
-                    "lean": s.get("lean", ""), "lean_why": s.get("why", "")})
+                    "lean": s.get("lean", ""), "lean_why": s.get("why", ""),
+                    "fund": it["fund"], "checked": it["checked"], "fund_new": False})
     return out
+
+
+# ---------------------------------------------------------------- fundamentals (Screener.in, every 15 days)
+FUND_DAYS = 15        # re-check each stock after this many days
+NEW_MAX = 40          # new stocks analysed per run (first run fills the whole sheet)
+STALE_MAX = 8         # stale stocks refreshed per run, so the work is spread over the fortnight
+
+
+def screener_text(sym):
+    """Key sections of the stock's Screener.in page as plain text (consolidated first, then standalone)."""
+    from bs4 import BeautifulSoup
+    for path in (f"{sym}/consolidated/", f"{sym}/"):
+        try:
+            r = requests.get("https://www.screener.in/company/" + path, timeout=25, headers=UA)
+            if r.status_code != 200:
+                continue
+            soup = BeautifulSoup(r.text, "html.parser")
+            parts = []
+            for sel, label in (("#top-ratios", "RATIOS"), (".ranges-table", "GROWTH"), ("#quarters table", "QUARTERS"),
+                               ("#balance-sheet table", "BALANCE SHEET"), ("#shareholding table", "SHAREHOLDING")):
+                for el in soup.select(sel)[:4]:
+                    parts.append(label + ": " + re.sub(r"\s+", " ", el.get_text(" ", strip=True)))
+            txt = "\n".join(parts)
+            if "Net Profit" in txt and ("ROE" in txt or "ROCE" in txt):
+                return txt[:9000], "https://www.screener.in/company/" + path
+        except Exception as ex:
+            log(f"[warn] screener {sym}: {ex}")
+    return None, None
+
+
+def fund_due(s):
+    if not s.get("fund", "").strip():
+        return "new"
+    try:
+        d = datetime.strptime(s.get("checked", "").strip()[:10], "%Y-%m-%d").replace(tzinfo=IST)
+        return "stale" if (NOW - d).days >= FUND_DAYS else ""
+    except ValueError:
+        s["fund_stamp"] = True          # your own analysis without a date: just record today's date
+        return ""
+
+
+def fundamentals_update(stocks):
+    new = [s for s in stocks if fund_due(s) == "new"][:NEW_MAX]
+    stale = [s for s in stocks if fund_due(s) == "stale"][:STALE_MAX]
+    todo = new + stale
+    if not todo:
+        return
+    log(f"[info] fundamentals: {len(new)} new, {len(stale)} due for the 15-day refresh")
+    day = NOW.strftime("%d %b %Y")
+    ready = []
+    for s in todo:
+        txt, url = screener_text(s["nse"]) if s.get("nse") else (None, None)
+        if txt:
+            ready.append((s, txt))
+        else:
+            s["fund"] = f"⚪ Not checked ({day}): no Screener.in data found. Check the stock name or NSE symbol."
+            s["fund_new"] = True
+    for k in range(0, len(ready), 6):
+        batch = ready[k:k + 6]
+        block = "\n\n".join(f"=== [{i}] {s['stock']} (NSE: {s['nse']}) ===\n{txt}" for i, (s, txt) in enumerate(batch))
+        prompt = f"""Below are Screener.in figures for Indian listed companies (consolidated where available; amounts in Rs crore).
+For each company judge the business fundamentals:
+- Non-financial companies: ROCE and ROE (above 15% is good), borrowings vs reserves (debt),
+  3-year compounded sales and profit growth, latest quarter sales and net profit vs the same quarter a year earlier
+  (compute from the QUARTERS table: last column vs the column 4 places earlier), P/E, promoter holding trend.
+- Banks / NBFCs / insurers: use ROE, price to book (price / book value), profit growth and latest quarter; ignore ROCE and debt.
+verdict: "Strong", "Good, caution" or "Weak".
+summary: max 30 words, numbers first, e.g. "ROCE 30% / ROE 24%, low debt, 3y sales 9% / profit 6%, Q sales +12% / profit +21%, P/E 20. Cheap, steady."
+Use only the figures given. If a figure is missing, leave it out.
+
+{block}
+
+{JSON_ONLY} Schema: {{"stocks": [{{"i": 0, "verdict": "", "summary": ""}}]}}"""
+        try:
+            text, _ = claude(prompt, MODEL, 2500)
+            for r in parse_json(text).get("stocks", []):
+                i = r.get("i")
+                if isinstance(i, int) and 0 <= i < len(batch):
+                    v = str(r.get("verdict", ""))
+                    mark = "✅" if v.lower().startswith("strong") else "🔴" if v.lower().startswith("weak") else "🟡"
+                    batch[i][0]["fund"] = f"{mark} {v} ({day}): {r.get('summary', '')}"
+                    batch[i][0]["fund_new"] = True
+        except Exception as ex:
+            log(f"[error] fundamentals batch: {ex}")
 
 
 def write_watch_back(stocks):
     """Puts today's news / lean into FFA_TIE columns C and D (only cells you left empty or that hold old 🤖 notes)."""
     if not (GAS_URL and GAS_TOKEN and stocks):
         return
-    items = [{"row": s["row"], "news": s["news"], "lean": (s["lean"] + (" — " + s["lean_why"] if s["lean_why"] else ""))}
+    items = [{"row": s["row"], "news": s["news"], "lean": (s["lean"] + (" — " + s["lean_why"] if s["lean_why"] else "")),
+              "fund": s["fund"] if s.get("fund_new") else "", "stamp": bool(s.get("fund_stamp"))}
              for s in stocks]
     try:
         r = requests.post(GAS_URL, data=json.dumps({"token": GAS_TOKEN, "action": "watch", "items": items,
@@ -457,6 +544,7 @@ def main():
             log(f"[warn] watchlist: {p['watch']['error']}")
         stocks = step("watchlist", watchlist_update, p.get("watch"), default=[]) or []
         log(f"[info] watchlist: {len(stocks)} stocks updated")
+        step("fundamentals", fundamentals_update, stocks)
         write_watch_back(stocks)
         digest["watch"] = stocks
         digest["journal"] = {"url": GAS_URL, "key": p.get("journalKey", "")}

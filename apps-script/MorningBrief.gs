@@ -83,30 +83,50 @@ function readEmails_() {
 }
 
 /* ---------------- watchlist (FFA_TIE) ---------------- */
+// Columns are found by their header text, so you can move them around.
+// "Fundamentals" + "Fund. checked" are added right after "Why" the first time.
+function watchCols_(sh) {
+  let head = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+  if (!head.some(h => /fundamental/i.test(h))) {
+    sh.insertColumnsAfter(2, 2);
+    sh.getRange(1, 3, 1, 2).setValues([['Fundamentals (auto · every 15 days)', 'Fund. checked']]).setFontWeight('bold');
+    sh.setColumnWidth(3, 420); sh.getRange(2, 3, Math.max(1, sh.getMaxRows() - 1), 1).setWrap(true);
+    head = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+  }
+  const col = re => head.findIndex(h => re.test(h)) + 1;   // 0 = not found
+  return { fund: col(/fundamental/i), checked: col(/checked/i), news: col(/news/i), action: col(/action/i) };
+}
 function readWatch_() {
   const sh = ss_().getSheetByName(WATCH_TAB);
   if (!sh) return { error: 'tab ' + WATCH_TAB + ' not found' };
-  const v = sh.getDataRange().getDisplayValues();
-  const out = [];
-  for (let i = 1; i < v.length && out.length < 60; i++) {
-    if (String(v[i][0]).trim()) out.push({ row: i + 1, stock: v[i][0], why: v[i][1] || '', news: v[i][2] || '', action: v[i][3] || '' });
+  const c = watchCols_(sh), v = sh.getDataRange().getDisplayValues(), out = [];
+  const at = (row, k) => c[k] ? row[c[k] - 1] || '' : '';
+  for (let i = 1; i < v.length && out.length < 120; i++) {
+    if (String(v[i][0]).trim()) out.push({ row: i + 1, stock: v[i][0], why: v[i][1] || '', fund: at(v[i], 'fund'),
+      checked: at(v[i], 'checked'), news: at(v[i], 'news'), action: at(v[i], 'action') });
   }
   return { sheet: WATCH_TAB, header: v[0], rows: out };
 }
-// writes "🤖 date: ..." into News (C) and Action (D); never overwrites text you typed yourself
+// News / Action get "🤖 date: ..." and are never written over text you typed yourself.
+// Fundamentals: your own text is kept until its 'Fund. checked' date is 15 days old, then refreshed.
 function writeWatch_(items, date) {
   const sh = ss_().getSheetByName(WATCH_TAB);
   if (!sh) return { ok: false, error: 'tab not found' };
+  const c = watchCols_(sh), today = Utilities.formatDate(new Date(), 'Asia/Kolkata', 'yyyy-MM-dd');
+  const auto = t => !t || /^(🤖|✅|🟡|🔴|⚪)/.test(t);
   let n = 0;
   items.forEach(it => {
     const r = Number(it.row); if (!(r > 1)) return;
-    const cell = (col, text) => {
-      if (!text) return;
-      const c = sh.getRange(r, col), old = String(c.getDisplayValue()).trim();
-      if (!old || old.indexOf('🤖') === 0) { c.setValue('🤖 ' + date + ': ' + text); n++; }
+    const put = (col, text, prefix) => {
+      if (!col || !text) return false;
+      const cell = sh.getRange(r, col), old = String(cell.getDisplayValue()).trim();
+      if (!auto(old)) return false;
+      cell.setValue(prefix ? '🤖 ' + date + ': ' + text : text); n++; return true;
     };
-    cell(3, it.news);
-    cell(4, it.lean);
+    put(c.news, it.news, true);
+    put(c.action, it.lean, true);
+    if (c.fund && it.fund) { sh.getRange(r, c.fund).setValue(it.fund); n++; }      // 15-day refresh replaces any text
+    if (c.checked && (it.fund || it.stamp)) sh.getRange(r, c.checked).setNumberFormat('@').setValue(today);
   });
   return { ok: true, written: n };
 }

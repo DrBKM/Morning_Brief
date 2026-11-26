@@ -124,6 +124,7 @@
   .jform textarea{grid-column:1/-1; min-height:76px;}
   .jform .btnsm{justify-self:start;}
   .jscore{font-size:13px; color:var(--muted); margin:4px 0 8px;}
+  .wtbl td.fund{font-size:12.5px; color:#C9D3DC; min-width:240px; max-width:360px;}
   .pts{white-space:pre-line; color:#C9D3DC; font-size:12.5px; max-width:420px;}
   @media (max-width:760px){ .jform{grid-template-columns:1fr 1fr;} }
 </style>
@@ -219,11 +220,11 @@
 
   <section class="card span12">
     <h2>5 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
-    <p class="sub">From your Google Sheet. Prices are last close; news is from the last 3 days, summarised by Claude.
+    <p class="sub">From your Google Sheet. Fundamentals come from Screener.in and are re-checked every 15 days (new stocks the next morning). Prices are last close; news is from the last 3 days, summarised by Claude.
       The lean is a news-based note, not advice. It is also written into the sheet's News and Action columns (only in empty cells or old 🤖 notes).</p>
     <div class="tblwrap"><table class="wtbl" id="watchTbl">
-      <thead><tr><th>Stock</th><th>Why</th><th>Last close</th><th>News</th><th>Lean</th></tr></thead>
-      <tbody><tr><td colspan="5" class="empty">Unlock with your passphrase (bar at the top).</td></tr></tbody>
+      <thead><tr><th>Stock</th><th>Why</th><th>Fundamentals</th><th>Last close</th><th>News</th><th>Lean</th></tr></thead>
+      <tbody><tr><td colspan="6" class="empty">Unlock with your passphrase (bar at the top).</td></tr></tbody>
     </table></div>
   </section>
 
@@ -569,13 +570,13 @@ tvWidget('tvSensex','BSE:SENSEX','1M'); tvWidget('tvNifty','NSEIX:NIFTY1!','1D')
 function renderWatch(list){
   const tb=document.querySelector('#watchTbl tbody');
   document.getElementById('tagWatch').textContent='unlocked · '+list.length+' stocks';
-  if(!list.length){ tb.innerHTML='<tr><td colspan="5" class="empty">No watchlist data in this morning\'s run (check the FFA_TIE tab name).</td></tr>'; return; }
+  if(!list.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No watchlist data in this morning\'s run (check the FFA_TIE tab name).</td></tr>'; return; }
   const tone={good:'go',bad:'hot',mixed:'amb'};
   tb.innerHTML=list.map(s=>{
     const q=s.quote, tv=s.nse?'https://www.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(s.nse):'';
     const px=q?`${Number(q.close).toLocaleString('en-IN')}<br><span class="${q.chg>=0?'up':'down'}">${q.pct>=0?'+':''}${q.pct}%</span>`:'—';
     return `<tr><td>${tv?`<a href="${tv}" target="_blank" rel="noopener"><b>${esc(s.stock)}</b></a>`:`<b>${esc(s.stock)}</b>`}<div class="m">${esc(s.nse)}</div></td>
-      <td>${esc(s.why_sheet)}</td><td class="num">${px}</td>
+      <td>${esc(s.why_sheet)}</td><td class="fund">${esc(s.fund||'—')}</td><td class="num">${px}</td>
       <td><span class="pill ${tone[s.tone]||''}">${esc(s.tone||'none')}</span>${esc(s.news)}</td>
       <td><b>${esc(s.lean)}</b><div class="m">${esc(s.lean_why)}</div></td></tr>`;
   }).join('');
