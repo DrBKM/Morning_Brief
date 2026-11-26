@@ -105,6 +105,27 @@
     padding:6px 10px; border-radius:4px; width:220px;}
   .lockbox button,.btnsm{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:12px;}
   .empty{color:var(--faint); font-size:13px;}
+  .unlockbar{gap:10px; flex-wrap:wrap;}
+  .unlockbar input[type=password]{background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:6px 10px; border-radius:4px; width:200px;}
+  .unlockbar button{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px; border-radius:4px; cursor:pointer; font-size:12px;}
+  .tv{height:190px; margin-top:10px;}
+  .tblwrap{overflow-x:auto;}
+  .wtbl{width:100%; border-collapse:collapse; font-size:13px;}
+  .wtbl th{text-align:left; color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em;
+    padding:8px 8px; border-bottom:1px solid var(--border); white-space:nowrap;}
+  .wtbl td{padding:9px 8px; border-bottom:1px solid var(--border); vertical-align:top;}
+  .wtbl td.num{font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
+  .wtbl .up{color:var(--green);} .wtbl .down{color:var(--red);}
+  .wtbl a{color:var(--ink);} .wtbl a:hover{color:var(--amber);}
+  .wtbl select,.wtbl input{background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:4px 6px; border-radius:4px; font-size:12px;}
+  .wtbl input{width:80px;}
+  .jform{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; margin-bottom:12px;}
+  .jform input,.jform select,.jform textarea{background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:7px 9px; border-radius:4px; font-size:13px; font-family:inherit;}
+  .jform textarea{grid-column:1/-1; min-height:76px;}
+  .jform .btnsm{justify-self:start;}
+  .jscore{font-size:13px; color:var(--muted); margin:4px 0 8px;}
+  .pts{white-space:pre-line; color:#C9D3DC; font-size:12.5px; max-width:420px;}
+  @media (max-width:760px){ .jform{grid-template-columns:1fr 1fr;} }
 </style>
 </head>
 <body>
@@ -115,11 +136,20 @@
     <p>Markets · physics jobs · research · local events · tasks &amp; mail</p>
   </div>
   <div class="clockbar">
+    <div class="item"><span class="lbl">TODAY</span><span class="val" id="todayDate">--</span></div>
     <div class="item"><span class="lbl">IST NOW</span><span class="val" id="istClock">--:--:--</span></div>
-    <div class="item"><span class="lbl">LAST REFRESH</span><span class="val"><span id="refreshDot"></span><span id="lastRefresh">--</span></span></div>
+    <div class="item"><span class="lbl">QUOTES REFRESHED</span><span class="val"><span id="refreshDot"></span><span id="lastRefresh">--</span></span></div>
     <div class="item"><span class="lbl">NEXT REFRESH</span><span class="val" id="nextRefresh">5:00</span></div>
+    <div class="item"><span class="lbl">BRIEF PREPARED</span><span class="val" id="briefTime">--</span></div>
   </div>
 </header>
+
+<div class="keybar unlockbar" id="lockbox">
+  <span>🔒 Watchlist, trade journal, tasks and emails are locked. Passphrase:</span>
+  <input type="password" id="pp" autocomplete="current-password">
+  <label><input type="checkbox" id="ppKeep" checked> remember on this device</label>
+  <button onclick="unlock()">Unlock</button><span id="ppMsg"></span>
+</div>
 
 <div class="keybar">
   <span>Live US/forex/commodity data via Finnhub free tier.</span>
@@ -145,19 +175,24 @@
 
   <section class="card span6">
     <h2>3 · Sensex &amp; Nifty — Today's Read</h2>
-    <p class="sub">Enter yesterday's close manually each morning (NSE/Moneycontrol), then set today's expected behaviour.</p>
+    <p class="sub">Live charts by TradingView (exchange data may be delayed). Previous close is filled automatically by the morning run.</p>
     <div class="idx-grid">
       <div class="idx-box">
-        <div class="lbl">SENSEX prev close</div>
-        <input class="big mono" id="sensexClose" type="text" value="82,690" style="background:transparent;border:none;color:var(--ink);width:100%;">
-        <div class="chg" id="sensexChg" style="color:var(--muted);">enter chg vs prior day</div>
+        <div class="lbl">SENSEX · last close <span id="sensexDate"></span></div>
+        <div class="big mono" id="sensexClose">—</div>
+        <div class="chg" id="sensexChg" style="color:var(--muted);">waiting for the morning run</div>
+        <div class="tv" id="tvSensex"></div>
       </div>
       <div class="idx-box">
-        <div class="lbl">NIFTY 50 prev close</div>
-        <input class="big mono" id="niftyClose" type="text" value="25,330" style="background:transparent;border:none;color:var(--ink);width:100%;">
-        <div class="chg" id="niftyChg" style="color:var(--muted);">enter chg vs prior day</div>
+        <div class="lbl">NIFTY 50 · last close <span id="niftyDate"></span></div>
+        <div class="big mono" id="niftyClose">—</div>
+        <div class="chg" id="niftyChg" style="color:var(--muted);">waiting for the morning run</div>
+        <div class="tv" id="tvNifty"></div>
       </div>
     </div>
+    <p class="sub" style="margin-top:8px;">Open full chart: <a href="https://www.tradingview.com/chart/?symbol=BSE%3ASENSEX" target="_blank" rel="noopener">SENSEX</a> ·
+      <a href="https://www.tradingview.com/chart/?symbol=NSE%3ANIFTY" target="_blank" rel="noopener">NIFTY 50</a> ·
+      <a href="https://www.tradingview.com/chart/?symbol=NSE%3ABANKNIFTY" target="_blank" rel="noopener">BANK NIFTY</a></p>
     <div style="margin-top:16px;">
       <label class="sub" style="display:block; margin-bottom:6px;">Today's expected regime</label>
       <select id="regime" onchange="updateBias()">
@@ -182,8 +217,39 @@
     </ul>
   </section>
 
+  <section class="card span12">
+    <h2>5 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
+    <p class="sub">From your Google Sheet. Prices are last close; news is from the last 3 days, summarised by Claude.
+      The lean is a news-based note, not advice. It is also written into the sheet's News and Action columns (only in empty cells or old 🤖 notes).</p>
+    <div class="tblwrap"><table class="wtbl" id="watchTbl">
+      <thead><tr><th>Stock</th><th>Why</th><th>Last close</th><th>News</th><th>Lean</th></tr></thead>
+      <tbody><tr><td colspan="5" class="empty">Unlock with your passphrase (bar at the top).</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card span12">
+    <h2>6 · Trade Decisions <span class="tag manual" id="tagJournal">private · saved to Google Sheet</span></h2>
+    <p class="sub">Write your decision and the points behind it before the trade. Mark Correct / Wrong at the end of the day
+      (plain stock or index entries are also marked automatically at 3:45 PM if you turned that on). Everything is saved in the <b>Trade_Journal</b> tab.</p>
+    <div class="jform">
+      <input id="jInst" placeholder="Instrument (e.g. NIFTY, SBIN)" maxlength="40">
+      <select id="jDir"><option>Buy / Long</option><option>Sell / Short</option><option>Buy CE (bullish)</option><option>Buy PE (bearish)</option><option>Sell options (range)</option><option>No trade</option></select>
+      <input id="jEntry" placeholder="Entry" inputmode="decimal">
+      <input id="jSl" placeholder="Stop loss" inputmode="decimal">
+      <input id="jTgt" placeholder="Target" inputmode="decimal">
+      <select id="jConf"><option value="">Confidence</option><option>High</option><option>Medium</option><option>Low</option></select>
+      <textarea id="jPts" placeholder="Points for this decision, one per line, e.g.&#10;• Trend up on 15-min, above VWAP&#10;• FII net buyers yesterday&#10;• Regime: trending up"></textarea>
+      <button class="btnsm" id="jSave" onclick="addTrade()">Save decision to sheet</button><span id="jMsg" class="sub"></span>
+    </div>
+    <div class="jscore" id="jScore"></div>
+    <div class="tblwrap"><table class="wtbl" id="jTbl">
+      <thead><tr><th>Date</th><th>Instrument</th><th>Decision</th><th>Entry / SL / Target</th><th>Points</th><th>Result (end of day)</th></tr></thead>
+      <tbody><tr><td colspan="6" class="empty">Unlock with your passphrase (bar at the top).</td></tr></tbody>
+    </table></div>
+  </section>
+
   <section class="card span6">
-    <h2>5 · Gold, Currency, Bonds, Crude <span class="tag live" id="commodTag">live · finnhub</span></h2>
+    <h2>7 · Gold, Currency, Bonds, Crude <span class="tag live" id="commodTag">live · finnhub</span></h2>
     <p class="sub">Auto-refreshes every 5 minutes once an API key is saved.</p>
     <div class="ticker-row"><span class="name">Gold (XAU/USD)</span><span class="price" id="q_gold">—</span></div>
     <div class="ticker-row"><span class="name">Crude (WTI, USO proxy)</span><span class="price" id="q_oil">—</span></div>
@@ -193,7 +259,7 @@
   </section>
 
   <section class="card span6">
-    <h2>6 · Global Markets <span class="tag live" id="globalTag">live · finnhub</span></h2>
+    <h2>8 · Global Markets <span class="tag live" id="globalTag">live · finnhub</span></h2>
     <p class="sub">Wall Street close, Asia overnight, Europe/London pre-open countdown.</p>
     <div class="ticker-row"><span class="name">Nasdaq 100 (QQQ)</span><span class="price" id="q_nasdaq">—</span></div>
     <div class="ticker-row"><span class="name">S&amp;P 500 (SPY)</span><span class="price" id="q_spx">—</span></div>
@@ -214,38 +280,33 @@
   </section>
 
   <section class="card span6">
-    <h2>7 · Physics Jobs — Assistant Professor <span class="tag live" id="tagJobs">₹1 L+ · India</span></h2>
+    <h2>9 · Physics Jobs — Assistant Professor <span class="tag live" id="tagJobs">₹1 L+ · India</span></h2>
     <p class="sub">Open posts found by Claude's web search this morning. Always check the official advert before applying.</p>
     <ul class="feed" id="jobList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <section class="card span6">
-    <h2>8 · Research Radar <span class="tag live">last 7 days</span></h2>
+    <h2>10 · Research Radar <span class="tag live">last 7 days</span></h2>
     <p class="sub">Nanomagnetism · Magnonics · Spintronics · AI · Quantum computing, from leading journals and arXiv.</p>
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <section class="card span6">
-    <h2>9 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
+    <h2>11 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
     <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
-    <div class="lockbox" id="lockbox">
-      <span>🔒 Locked. Enter your passphrase:</span>
-      <input type="password" id="pp" autocomplete="current-password">
-      <label><input type="checkbox" id="ppKeep" checked> remember on this device</label>
-      <button onclick="unlock()">Unlock</button><span id="ppMsg"></span>
-    </div>
+    <p class="empty" id="taskLock">Unlock with your passphrase (bar at the top).</p>
     <ul class="feed" id="taskList"></ul>
   </section>
 
   <section class="card span6">
-    <h2>10 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
+    <h2>12 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
     <p class="sub">Worthwhile events in the next 7 days.</p>
     <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <section class="card span12">
-    <h2>11 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
-    <p class="sub">Important or starred Gmail that may need you today. Unlock with the same passphrase above.</p>
+    <h2>13 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
+    <p class="sub">Important or starred Gmail that may need you today. Unlocks with the passphrase bar at the top.</p>
     <ul class="feed" id="mailList"><li class="empty">Locked.</li></ul>
     <p class="sub" style="margin-top:10px;"><a href="#" onclick="lockAgain();return false;">Lock again / forget passphrase on this device</a></p>
   </section>
@@ -266,7 +327,7 @@
 
 <footer>
   Built as a static GitHub Pages dashboard · quotes via <a href="https://finnhub.io" target="_blank">Finnhub</a> free tier ·
-  Sensex/Nifty, news &amp; sentiment fields are entered manually (no free live NSE/news API exists) ·
+  index charts by <a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>; closing prices from Yahoo Finance ·
   Not financial advice.
 </footer>
 
@@ -389,6 +450,16 @@ async function loadBriefing(){
       });
     }
 
+    const fmt=n=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:2});
+    for(const [k,id] of [['sensex','sensex'],['nifty','nifty']]){
+      const q=b.indices&&b.indices[k]; if(!q) continue;
+      document.getElementById(id+'Close').textContent=fmt(q.close);
+      document.getElementById(id+'Date').textContent='('+q.date+')';
+      const c=document.getElementById(id+'Chg');
+      if(q.chg!=null){ c.textContent=(q.chg>=0?'▲ ':'▼ ')+fmt(Math.abs(q.chg))+' ('+(q.pct>=0?'+':'')+q.pct+'%) vs prior day'; c.style.color=q.chg>=0?'var(--green)':'var(--red)'; }
+    }
+    document.getElementById('briefTime').textContent=genTime.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+
     if(b.regime_hint){
       document.getElementById('regime').value = b.regime_hint;
       updateBias();
@@ -431,7 +502,7 @@ function renderPublic(b){
   fill('eventList', b.events, e=>`<li>${link(e.url, e.name)}<div class="m">${esc(e.when)}${e.where?' · '+esc(e.where):''}</div>
     <div class="w">${esc(e.why)}</div></li>`, 'No events found for the coming week.');
   if(b.local_area) document.getElementById('tagArea').textContent = b.local_area;
-  if(!b.private){ document.getElementById('lockbox').innerHTML='<span>Tasks and emails are not set up yet (see README-setup.md).</span>'; }
+  if(!b.private){ document.getElementById('lockbox').innerHTML='<span>Private sections are not set up yet (see SETUP-claude-brief.md).</span>'; }
 }
 const b64d = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function decryptPrivate(blob, pass){
@@ -443,6 +514,9 @@ async function decryptPrivate(blob, pass){
 }
 function renderPrivate(p){
   document.getElementById('lockbox').style.display='none';
+  const tl=document.getElementById('taskLock'); if(tl) tl.remove();
+  renderWatch(p.watch||[]);
+  JR=p.journal||{}; loadJournal();
   document.getElementById('tagTasks').textContent = 'unlocked'+(p.sheet?' · '+p.sheet:'');
   const cls={overdue:'hot',today:'amb',continuing:'go'};
   fill('taskList', p.tasks, t=>`<li><span class="pill ${cls[t.status]||''}">${esc(t.status)}</span><span class="t">${esc(t.task)}</span>
@@ -475,6 +549,93 @@ async function loadExtras(){
   }catch(e){ console.warn('extras', e); }
 }
 loadExtras();
+
+// ---------- date in header ----------
+document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'long',day:'numeric',month:'short',year:'numeric'});
+
+// ---------- TradingView index widgets ----------
+function tvWidget(id,symbol){
+  const box=document.getElementById(id); if(!box) return;
+  box.innerHTML='<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div></div>';
+  const sc=document.createElement('script'); sc.async=true;
+  sc.src='https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
+  sc.textContent=JSON.stringify({symbol:symbol,width:'100%',height:190,locale:'en',dateRange:'1D',colorTheme:'dark',
+    isTransparent:true,autosize:false,largeChartUrl:'',chartOnly:false,noTimeScale:false});
+  box.firstChild.appendChild(sc);
+}
+tvWidget('tvSensex','BSE:SENSEX'); tvWidget('tvNifty','NSE:NIFTY');
+
+// ---------- watchlist table ----------
+function renderWatch(list){
+  const tb=document.querySelector('#watchTbl tbody');
+  document.getElementById('tagWatch').textContent='unlocked · '+list.length+' stocks';
+  if(!list.length){ tb.innerHTML='<tr><td colspan="5" class="empty">No watchlist data in this morning\'s run (check the FFA_TIE tab name).</td></tr>'; return; }
+  const tone={good:'go',bad:'hot',mixed:'amb'};
+  tb.innerHTML=list.map(s=>{
+    const q=s.quote, tv=s.nse?'https://www.tradingview.com/chart/?symbol=NSE%3A'+encodeURIComponent(s.nse):'';
+    const px=q?`${Number(q.close).toLocaleString('en-IN')}<br><span class="${q.chg>=0?'up':'down'}">${q.pct>=0?'+':''}${q.pct}%</span>`:'—';
+    return `<tr><td>${tv?`<a href="${tv}" target="_blank" rel="noopener"><b>${esc(s.stock)}</b></a>`:`<b>${esc(s.stock)}</b>`}<div class="m">${esc(s.nse)}</div></td>
+      <td>${esc(s.why_sheet)}</td><td class="num">${px}</td>
+      <td><span class="pill ${tone[s.tone]||''}">${esc(s.tone||'none')}</span>${esc(s.news)}</td>
+      <td><b>${esc(s.lean)}</b><div class="m">${esc(s.lean_why)}</div></td></tr>`;
+  }).join('');
+}
+
+// ---------- trade journal (Google Sheet via Apps Script) ----------
+let JR={}, JROWS=[];
+async function jcall(body){
+  const r=await fetch(JR.url,{method:'POST',body:JSON.stringify(Object.assign({jkey:JR.key},body))});
+  return r.json();
+}
+async function loadJournal(){
+  const tb=document.querySelector('#jTbl tbody');
+  if(!JR.url||!JR.key){ tb.innerHTML='<tr><td colspan="6" class="empty">Journal not connected yet: update the Apps Script (version 2) and run the workflow once.</td></tr>'; return; }
+  try{
+    const d=await (await fetch(JR.url+'?jkey='+encodeURIComponent(JR.key))).json();
+    if(!d.ok) throw new Error(d.error||'error');
+    JROWS=d.journal||[]; drawJournal();
+  }catch(e){ tb.innerHTML='<tr><td colspan="6" class="empty">Could not reach the Google Sheet ('+esc(e.message)+').</td></tr>'; }
+}
+function drawJournal(){
+  const tb=document.querySelector('#jTbl tbody');
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
+  const t=JROWS.filter(r=>r.Date===today), c=t.filter(r=>/^correct/i.test(r.Result)).length, w=t.filter(r=>/^wrong/i.test(r.Result)).length;
+  const all=JROWS.filter(r=>/^(correct|wrong)/i.test(r.Result)), ac=all.filter(r=>/^correct/i.test(r.Result)).length;
+  document.getElementById('jScore').innerHTML=`Today: <b>${t.length}</b> decisions · <span style="color:var(--green)">${c} correct</span> · <span style="color:var(--red)">${w} wrong</span>`+
+    (all.length?` &nbsp;|&nbsp; Last ${JROWS.length} entries hit rate: <b>${Math.round(ac/all.length*100)}%</b> (${ac}/${all.length})`:'');
+  if(!JROWS.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No decisions yet. Add your first one above.</td></tr>'; return; }
+  tb.innerHTML=JROWS.slice(0,40).map(r=>{
+    const res=r.Result||'Open', opts=['Open','Correct','Wrong','Not taken'];
+    const sel=opts.map(o=>`<option${res.toLowerCase().startsWith(o.toLowerCase())?' selected':''}>${o}</option>`).join('');
+    return `<tr data-id="${esc(r.ID)}"><td class="num">${esc(r.Date)}<br>${esc(r.Time)}</td><td><b>${esc(r.Instrument)}</b><div class="m">${esc(r.Confidence)}</div></td>
+      <td>${esc(r.Direction)}</td><td class="num">${esc(r.Entry)} / ${esc(r['Stop loss'])} / ${esc(r.Target)}</td>
+      <td class="pts">${esc(r['Points / reason'])}</td>
+      <td><select class="jRes">${sel}</select> <input class="jExit" placeholder="exit" value="${esc(r['Exit / close'])}">
+        <button class="btnsm" onclick="saveResult(this)">Save</button>
+        <div class="m">${/auto/i.test(res)?'auto: ':''}${esc(r['Result note'])}</div></td></tr>`;
+  }).join('');
+}
+async function addTrade(){
+  const v=id=>document.getElementById(id).value.trim(), msg=document.getElementById('jMsg');
+  if(!JR.url){ msg.textContent='Unlock first.'; return; }
+  if(!v('jInst')){ msg.textContent='Enter the instrument.'; return; }
+  const b=document.getElementById('jSave'); b.disabled=true; msg.textContent='Saving…';
+  try{
+    const r=await jcall({action:'add',t:{instrument:v('jInst'),direction:v('jDir'),entry:v('jEntry'),sl:v('jSl'),target:v('jTgt'),confidence:v('jConf'),points:v('jPts')}});
+    if(!r.ok) throw new Error(r.error);
+    msg.textContent='Saved ✓'; ['jInst','jEntry','jSl','jTgt','jPts'].forEach(id=>document.getElementById(id).value='');
+    await loadJournal();
+  }catch(e){ msg.textContent='Not saved: '+e.message; }
+  b.disabled=false;
+}
+async function saveResult(btn){
+  const tr=btn.closest('tr'); btn.disabled=true; btn.textContent='…';
+  try{
+    const r=await jcall({action:'result',id:tr.dataset.id,result:tr.querySelector('.jRes').value,exit:tr.querySelector('.jExit').value.trim()});
+    if(!r.ok) throw new Error(r.error);
+    await loadJournal();
+  }catch(e){ btn.textContent='Retry'; btn.disabled=false; console.warn(e); }
+}
 </script>
 </body>
 </html>

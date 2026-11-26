@@ -318,6 +318,104 @@ def encrypt(obj, passphrase):
     return {"v": 1, "iter": 250000, "salt": b(salt), "iv": b(iv), "ct": b(ct)}
 
 
+# ---------------------------------------------------------------- prices (Yahoo Finance chart API)
+def yahoo(sym):
+    """Last two daily closes for a Yahoo symbol, e.g. ^NSEI, ^BSESN, SBIN.NS."""
+    try:
+        r = requests.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(sym)}",
+                         params={"range": "5d", "interval": "1d"}, timeout=20, headers=UA)
+        r.raise_for_status()
+        res = r.json()["chart"]["result"][0]
+        closes = [c for c in res["indicators"]["quote"][0]["close"] if c]
+        ts = [t for t, c in zip(res["timestamp"], res["indicators"]["quote"][0]["close"]) if c]
+        if not closes:
+            return None
+        last = closes[-1]
+        prev = closes[-2] if len(closes) > 1 else res["meta"].get("chartPreviousClose")
+        out = {"close": round(last, 2), "date": datetime.fromtimestamp(ts[-1], IST).strftime("%a %d %b")}
+        if prev:
+            out["chg"] = round(last - prev, 2)
+            out["pct"] = round((last - prev) / prev * 100, 2)
+        return out
+    except Exception as ex:
+        log(f"[warn] price {sym}: {ex}")
+        return None
+
+
+def fetch_indices():
+    return {"sensex": yahoo("^BSESN"), "nifty": yahoo("^NSEI"), "banknifty": yahoo("^NSEBANK")}
+
+
+# ---------------------------------------------------------------- stock watchlist (FFA_TIE tab)
+def clean_stock(name):
+    s = re.sub(r"\bISIN\b|\|", " ", str(name), flags=re.I)
+    s = re.sub(r"\bIN[EF][0-9A-Z]{9}\b", " ", s)      # drop ISIN codes
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def stock_news(name):
+    url = ("https://news.google.com/rss/search?q=" + requests.utils.quote(f"{name} share when:3d") +
+           "&hl=en-IN&gl=IN&ceid=IN:en")
+    try:
+        return [clean(e.get("title", ""), 160) for e in get_feed(url).entries[:4]]
+    except Exception as ex:
+        log(f"[warn] news {name}: {ex}")
+        return []
+
+
+def watchlist_update(watch):
+    rows = (watch or {}).get("rows") or []
+    if not rows:
+        return []
+    items = []
+    for r in rows:
+        name = clean_stock(r.get("stock", ""))
+        if name:
+            items.append({"row": r.get("row"), "stock": name, "why": r.get("why", ""), "heads": stock_news(name)})
+    block = "\n".join(f"[{i}] {it['stock']} | thesis: {it['why'] or '-'} | headlines: " +
+                      (" || ".join(it["heads"]) or "none") for i, it in enumerate(items))
+    prompt = f"""Today is {TODAY}. These are stocks on an Indian investor's watchlist, each with the last
+3 days of news headlines. For each stock:
+- nse: its NSE trading symbol (e.g. SBIN, BHARTIARTL, BAJFINANCE, TORNTPHARM); "" if you are not sure
+- news: one short paraphrased line (max 22 words) on what the news says; "No notable news." if none
+- tone: "good", "bad", "mixed" or "none"
+- lean: "Buy on dips", "Hold", "Watch", "Reduce" or "Avoid", judged ONLY from this news and the thesis
+- why: max 12 words
+Be conservative: with no clear news, use "Hold" for long-term theses and "Watch" otherwise.
+
+{block}
+
+{JSON_ONLY} Schema: {{"stocks": [{{"i": 0, "nse": "", "news": "", "tone": "", "lean": "", "why": ""}}]}}"""
+    text, _ = claude(prompt, MODEL, 5000)
+    out = []
+    for s in parse_json(text).get("stocks", []):
+        i = s.get("i")
+        if not (isinstance(i, int) and 0 <= i < len(items)):
+            continue
+        it = items[i]
+        sym = re.sub(r"[^A-Z0-9&\-]", "", str(s.get("nse", "")).upper())
+        q = yahoo(sym + ".NS") if sym else None
+        out.append({"row": it["row"], "stock": it["stock"], "why_sheet": it["why"], "nse": sym if q else "",
+                    "quote": q, "news": s.get("news", ""), "tone": s.get("tone", "none"),
+                    "lean": s.get("lean", ""), "lean_why": s.get("why", "")})
+    return out
+
+
+def write_watch_back(stocks):
+    """Puts today's news / lean into FFA_TIE columns C and D (only cells you left empty or that hold old 🤖 notes)."""
+    if not (GAS_URL and GAS_TOKEN and stocks):
+        return
+    items = [{"row": s["row"], "news": s["news"], "lean": (s["lean"] + (" — " + s["lean_why"] if s["lean_why"] else ""))}
+             for s in stocks]
+    try:
+        r = requests.post(GAS_URL, data=json.dumps({"token": GAS_TOKEN, "action": "watch", "items": items,
+                                                     "date": NOW.strftime("%d %b")}), timeout=60,
+                          headers={"Content-Type": "text/plain"})
+        log(f"[info] sheet write-back: {r.text[:120]}")
+    except Exception as ex:
+        log(f"[warn] sheet write-back failed: {ex}")
+
+
 # ---------------------------------------------------------------- main
 def step(name, fn, *a, default=None):
     try:
@@ -333,6 +431,8 @@ def main():
     
 
     out = {"generated_at": datetime.now(timezone.utc).isoformat(), "local_area": LOCAL_AREA}
+    out["indices"] = fetch_indices()
+    log(f"[info] indices: {out['indices']}")
 
     headlines = fetch_headlines()
     log(f"[info] {len(headlines)} market headlines")
@@ -352,12 +452,18 @@ def main():
 
     p = fetch_private()
     if p:
-        digest = step("tasks/emails", private_digest, p)
-        if digest is not None:
-            if PASSPHRASE:
-                out["private"] = encrypt(digest, PASSPHRASE)
-            else:
-                log("[warn] BRIEF_PASSPHRASE not set: tasks/emails NOT published (the page is public)")
+        digest = step("tasks/emails", private_digest, p, default=None) or {"tasks": [], "emails": []}
+        if p.get("watch", {}).get("error"):
+            log(f"[warn] watchlist: {p['watch']['error']}")
+        stocks = step("watchlist", watchlist_update, p.get("watch"), default=[]) or []
+        log(f"[info] watchlist: {len(stocks)} stocks updated")
+        write_watch_back(stocks)
+        digest["watch"] = stocks
+        digest["journal"] = {"url": GAS_URL, "key": p.get("journalKey", "")}
+        if PASSPHRASE:
+            out["private"] = encrypt(digest, PASSPHRASE)
+        else:
+            log("[warn] BRIEF_PASSPHRASE not set: private sections NOT published (the page is public)")
 
     os.makedirs("data", exist_ok=True)
     with open("data/briefing.json", "w") as f:
