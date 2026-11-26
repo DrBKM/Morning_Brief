@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>8:30 Desk — Morning Briefing</title>
+<meta name="description" content="Daily 8:30 AM briefing: markets, watchlist, trade journal, physics jobs, research, events and tasks.">
+<meta name="theme-color" content="#0A0E13">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="8:30 Desk — Morning Briefing">
+<meta property="og:description" content="Your morning briefing, ready before the bell.">
+<meta property="og:image" content="https://drbkm.github.io/Morning_Brief/assets/og-image.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -26,6 +36,20 @@
     display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
     position:sticky; top:0; background:rgba(10,14,19,0.96); backdrop-filter:blur(6px); z-index:10;
   }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-logo{width:42px; height:42px; flex:none;}
+  .hero{position:relative; min-height:150px; border-bottom:1px solid var(--border);
+    background:#0A0E13 url(assets/banner.svg) center/cover no-repeat;}
+  .hero::before{content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(10,14,19,.92) 0%,rgba(10,14,19,.6) 45%,rgba(10,14,19,0) 75%);}
+  .hero-in{position:relative; max-width:1400px; margin:0 auto; padding:26px 28px 22px;}
+  .hero-greet{font-family:'Barlow Condensed',sans-serif; font-size:34px; font-weight:700; line-height:1.1;}
+  .hero-greet span{color:var(--amber);}
+  .hero-sub{color:#AAB7C4; font-size:14px; margin-top:4px;}
+  .hero-chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .hero-chips a{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink); text-decoration:none;
+    border:1px solid #2A3642; background:rgba(16,22,29,.85); padding:5px 11px; border-radius:5px;}
+  .hero-chips a:hover{border-color:var(--amber); color:var(--amber);}
+  @media(max-width:700px){.hero-greet{font-size:27px;} .hero{min-height:130px;} .hero::before{background:rgba(10,14,19,.72);}}
   .brand h1{font-size:26px; font-weight:700; letter-spacing:0.3px;}
   .brand span{color:var(--amber);}
   .brand p{color:var(--muted); font-size:13px; margin-top:2px;}
@@ -43,8 +67,17 @@
   .keybar button{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px;
     border-radius:4px; cursor:pointer; font-size:12px;}
   .keybar button:hover{opacity:0.85;}
+  .keybar input[type=checkbox]{width:auto; padding:0; margin-right:4px; vertical-align:middle;}
+  .unlockbar label{display:inline-flex; align-items:center; white-space:nowrap;}
+  @media(max-width:700px){
+    header{padding:14px 16px;} .keybar{padding:10px 16px;} main{padding:16px;}
+    .clockbar{flex-wrap:wrap; gap:8px 18px;} .clockbar .item{align-items:flex-start;}
+    .clockbar .val{font-size:13px;} .unlockbar input[type=password]{width:100%;}
+    .hero-in{padding:20px 16px 18px;}
+  }
 
   main{padding:24px 28px; display:grid; grid-template-columns:repeat(12,1fr); gap:18px; max-width:1400px; margin:0 auto;}
+  .card{scroll-margin-top:110px;}
   .card{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px 20px;}
   .card h2{font-size:19px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;}
   .card .sub{color:var(--muted); font-size:12.5px; margin-bottom:14px;}
@@ -133,8 +166,11 @@
 
 <header>
   <div class="brand">
+    <img class="brand-logo" src="assets/logo.svg" width="42" height="42" alt="">
+    <div>
     <h1>8:30 <span>Desk</span></h1>
     <p>Markets · physics jobs · research · local events · tasks &amp; mail</p>
+    </div>
   </div>
   <div class="clockbar">
     <div class="item"><span class="lbl">TODAY</span><span class="val" id="todayDate">--</span></div>
@@ -151,6 +187,17 @@
   <label><input type="checkbox" id="ppKeep" checked> remember on this device</label>
   <button onclick="unlock()">Unlock</button><span id="ppMsg"></span>
 </div>
+
+<section class="hero" aria-label="Today">
+  <div class="hero-in">
+    <div class="hero-greet" id="heroGreet">Good morning, <span>Dr. Mahato</span></div>
+    <div class="hero-sub"><span id="heroDate"></span> · market opens 9:15 AM IST</div>
+    <nav class="hero-chips">
+      <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
+      <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-tasks">Tasks</a><a href="#sec-mail">Emails</a>
+    </nav>
+  </div>
+</section>
 
 <div class="keybar">
   <span>Live US/forex/commodity data via Finnhub free tier.</span>
@@ -174,7 +221,7 @@
     <textarea id="notesRates" placeholder="e.g. Fed held rates, dovish tilt in minutes; RBI next MPC on...">Run the GitHub Action (or wait for tomorrow's 8:05 AM run) to auto-fill this panel.</textarea>
   </section>
 
-  <section class="card span6">
+  <section class="card span6" id="sec-markets">
     <h2>3 · Sensex &amp; Nifty — Today's Read</h2>
     <p class="sub">Live charts by TradingView (exchange data may be delayed). Previous close is filled automatically by the morning run.</p>
     <div class="idx-grid">
@@ -218,7 +265,7 @@
     </ul>
   </section>
 
-  <section class="card span12">
+  <section class="card span12" id="sec-watch">
     <h2>5 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
     <p class="sub">From your Google Sheet. Fundamentals come from Screener.in and are re-checked every 15 days (new stocks the next morning). Prices are last close; news is from the last 3 days, summarised by Claude.
       The lean is a news-based note, not advice. It is also written into the sheet's News and Action columns (only in empty cells or old 🤖 notes).</p>
@@ -228,7 +275,7 @@
     </table></div>
   </section>
 
-  <section class="card span12">
+  <section class="card span12" id="sec-journal">
     <h2>6 · Trade Decisions <span class="tag manual" id="tagJournal">private · saved to Google Sheet</span></h2>
     <p class="sub">Write your decision and the points behind it before the trade. Mark Correct / Wrong at the end of the day
       (plain stock or index entries are also marked automatically at 3:45 PM if you turned that on). Everything is saved in the <b>Trade_Journal</b> tab.</p>
@@ -280,19 +327,19 @@
     </div>
   </section>
 
-  <section class="card span6">
+  <section class="card span6" id="sec-jobs">
     <h2>9 · Physics Jobs — Assistant Professor <span class="tag live" id="tagJobs">₹1 L+ · India</span></h2>
     <p class="sub">Open posts found by Claude's web search this morning. Always check the official advert before applying.</p>
     <ul class="feed" id="jobList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
-  <section class="card span6">
+  <section class="card span6" id="sec-research">
     <h2>10 · Research Radar <span class="tag live">last 7 days</span></h2>
     <p class="sub">Nanomagnetism · Magnonics · Spintronics · AI · Quantum computing, from leading journals and arXiv.</p>
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
-  <section class="card span6">
+  <section class="card span6" id="sec-tasks">
     <h2>11 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
     <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
     <p class="empty" id="taskLock">Unlock with your passphrase (bar at the top).</p>
@@ -305,7 +352,7 @@
     <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
-  <section class="card span12">
+  <section class="card span12" id="sec-mail">
     <h2>13 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
     <p class="sub">Important or starred Gmail that may need you today. Unlocks with the passphrase bar at the top.</p>
     <ul class="feed" id="mailList"><li class="empty">Locked.</li></ul>
@@ -551,6 +598,13 @@ async function loadExtras(){
 }
 loadExtras();
 
+// ---------- greeting banner ----------
+(function(){
+  const h=Number(new Date().toLocaleString('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',hour12:false}));
+  const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('heroGreet').innerHTML=g+', <span>Dr. Mahato</span>';
+  document.getElementById('heroDate').textContent=new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'long',day:'numeric',month:'long',year:'numeric'});
+})();
 // ---------- date in header ----------
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'long',day:'numeric',month:'short',year:'numeric'});
 
