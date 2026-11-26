@@ -190,7 +190,7 @@
 
 <section class="hero" aria-label="Today">
   <div class="hero-in">
-    <div class="hero-greet" id="heroGreet">Good morning, <span>Dr. Mahato</span></div>
+    <div class="hero-greet" id="heroGreet">Good morning</div>
     <div class="hero-sub"><span id="heroDate"></span> · market opens 9:15 AM IST</div>
     <nav class="hero-chips">
       <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
@@ -602,7 +602,7 @@ loadExtras();
 (function(){
   const h=Number(new Date().toLocaleString('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',hour12:false}));
   const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  document.getElementById('heroGreet').innerHTML=g+', <span>Dr. Mahato</span>';
+  document.getElementById('heroGreet').textContent=g;
   document.getElementById('heroDate').textContent=new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'long',day:'numeric',month:'long',year:'numeric'});
 })();
 // ---------- date in header ----------
