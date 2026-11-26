@@ -18,6 +18,13 @@ const MAX_ROWS = 150;                // newest task rows sent to Claude
 const WATCH_TAB = 'FFA_TIE';         // stock watchlist tab
 const JOURNAL_TAB = 'Trade_Journal'; // created automatically
 const MAIL_QUERY = 'in:inbox newer_than:1d (is:important OR is:starred) -category:promotions -category:social';
+const HABIT_TAB = 'Habits';         // daily WRYTINGS ticks (created automatically)
+const SUGAR_TAB = 'Diabetes';        // blood-sugar log (created automatically)
+const HABITS = [['W', 'Writing 200 words on my day (30 min)'], ['R', 'Reading a research article (1 hr)'],
+  ['Y', 'Revising Physics (1 hr)'], ['T', 'Trading plan and execution (1 hr)'], ['I', 'Instruments revision (15 min)'],
+  ['N', 'Sharpening negotiation skills (15 min)'], ['G', 'Measuring gravity of the present situation (15 min)'],
+  ['S', 'Spirituality and health (mental and physical)']];
+const SUGAR_TYPES = ['Fasting', 'Post-meal (2 hr)', 'Pre-meal', 'Bedtime', 'Random'];
 const J_HEAD = ['ID', 'Date', 'Time', 'Instrument', 'Direction', 'Entry', 'Stop loss', 'Target',
                 'Points / reason', 'Confidence', 'Result', 'Exit / close', 'Result note', 'Updated'];
 
@@ -40,8 +47,11 @@ function doGet(e) {
     try { res.watch = readWatch_(); } catch (err) { res.watch = { error: String(err) }; }
     return json_(res);
   }
-  if (p.jkey && p.jkey === journalKey_()) {               // web page: trade journal
-    return json_({ ok: true, journal: readJournal_(80) });
+  if (p.jkey && p.jkey === journalKey_()) {               // web page: journal, habits, sugar log
+    const out = { ok: true, journal: readJournal_(80) };
+    try { out.habits = readHabits_(400); } catch (err) { out.habitError = String(err); }
+    try { out.sugar = readSugar_(400); } catch (err) { out.sugarError = String(err); }
+    return json_(out);
   }
   return json_({ ok: false, error: 'unauthorised' });
 }
@@ -57,6 +67,8 @@ function doPost(e) {
     if (b.jkey !== journalKey_()) return json_({ ok: false, error: 'unauthorised' });
     if (b.action === 'add') return json_(addTrade_(b.t || {}));
     if (b.action === 'result') return json_(setResult_(b));
+    if (b.action === 'habit') return json_(saveHabit_(b));
+    if (b.action === 'sugar') return json_(addSugar_(b));
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -171,6 +183,114 @@ function setResult_(b) {
   return { ok: false, error: 'decision not found' };
 }
 
+/* ---------------- daily habits: W R Y T I N G S ---------------- */
+// Columns: Date | W R Y T I N G S (✓ or ✗) | Done | Note.  Summary for any date range on the right (cells N1:R14).
+function habitSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(HABIT_TAB);
+  if (sh) return sh;
+  sh = ss.insertSheet(HABIT_TAB);
+  const head = ['Date'].concat(HABITS.map(h => h[0])).concat(['Done (of 8)', 'Note']);
+  sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#e8eefc');
+  sh.setFrozenRows(1); sh.setColumnWidth(1, 100); sh.setColumnWidths(2, 8, 38); sh.setColumnWidth(11, 260);
+  HABITS.forEach((h, i) => sh.getRange(1, 2 + i).setNote(h[1]));
+  const tick = SpreadsheetApp.newDataValidation().requireValueInList(['✓', '✗'], true).setAllowInvalid(false).build();
+  sh.getRange('B2:I1000').setDataValidation(tick).setHorizontalAlignment('center');
+  sh.getRange('A2:A1000').setNumberFormat('yyyy-mm-dd');
+  sh.getRange('J2').setFormula('=ARRAYFORMULA(IF(A2:A="",,MMULT((B2:I="✓")*1,SEQUENCE(8,1,1,0))))');
+  // summary block
+  sh.getRange('M1:R1').setValues([['Summary', 'From', 'To', '', '', '']]).setFontWeight('bold');
+  sh.getRange('N2').setFormula('=TODAY()-29'); sh.getRange('O2').setFormula('=TODAY()');
+  sh.getRange('N2:O2').setNumberFormat('yyyy-mm-dd').setBackground('#fff8e1');
+  sh.getRange('M3:R3').setValues([['Habit', 'Done ✓', 'Missed ✗', 'Not marked', '% done', 'Days in range']]).setFontWeight('bold');
+  const rng = '$A$2:$A,">="&$N$2,$A$2:$A,"<="&$O$2';
+  HABITS.forEach((h, i) => {
+    const col = String.fromCharCode(66 + i), r = 4 + i;
+    sh.getRange(r, 13).setValue(h[0] + '  ' + h[1]);
+    sh.getRange(r, 14).setFormula(`=COUNTIFS(${col}$2:${col},"✓",${rng})`);
+    sh.getRange(r, 15).setFormula(`=COUNTIFS(${col}$2:${col},"✗",${rng})`);
+    sh.getRange(r, 18).setFormula('=$O$2-$N$2+1');
+    sh.getRange(r, 16).setFormula(`=R${r}-N${r}-O${r}`);
+    sh.getRange(r, 17).setFormula(`=IFERROR(N${r}/R${r},0)`).setNumberFormat('0%');
+  });
+  sh.getRange('M12').setValue('All 8 done (full days)').setFontWeight('bold');
+  sh.getRange('N12').setFormula(`=COUNTIFS($J$2:$J,8,${rng})`);
+  sh.getRange('M13').setValue('Average habits done per day').setFontWeight('bold');
+  sh.getRange('N13').setFormula(`=IFERROR(SUMIFS($J$2:$J,${rng})/($O$2-$N$2+1),0)`).setNumberFormat('0.0');
+  sh.getRange('M14').setValue('Change From / To (yellow) to see any period.').setFontStyle('italic');
+  sh.setColumnWidth(13, 330);
+  return sh;
+}
+function readHabits_(n) {
+  const sh = habitSheet_(), last = sh.getLastRow();
+  if (last < 2) return [];
+  const v = sh.getRange(2, 1, last - 1, 11).getDisplayValues().filter(r => r[0]);
+  return v.slice(-n).map(r => ({ date: r[0], marks: r.slice(1, 9).map(c => c === '✓' || c === '✗' ? c : '·').join(''), note: r[10] }));
+}
+function saveHabit_(b) {
+  const date = String(b.date || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: 'bad date' };
+  const marks = HABITS.map((h, i) => { const m = String((b.marks || '')[i] || ''); return m === '✓' || m === '✗' ? m : ''; });
+  const sh = habitSheet_(), last = sh.getLastRow();
+  let row = 0;
+  if (last >= 2) {
+    const dates = sh.getRange(2, 1, last - 1, 1).getDisplayValues();
+    for (let i = 0; i < dates.length; i++) if (dates[i][0] === date) { row = i + 2; break; }
+  }
+  if (!row) {
+    row = Math.max(2, last + 1);
+    const [y, m, d] = date.split('-').map(Number);
+    sh.getRange(row, 1).setValue(new Date(y, m - 1, d));
+  }
+  sh.getRange(row, 2, 1, 8).setValues([marks]);
+  if (b.note != null) sh.getRange(row, 11).setValue(String(b.note).slice(0, 300));
+  return { ok: true };
+}
+
+/* ---------------- diabetes log ---------------- */
+// Columns: Date | Time | Type | Reading (mg/dL) | Note.  Averages for any date range on the right.
+function sugarSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(SUGAR_TAB);
+  if (sh) return sh;
+  sh = ss.insertSheet(SUGAR_TAB);
+  sh.getRange(1, 1, 1, 5).setValues([['Date', 'Time', 'Type', 'Reading (mg/dL)', 'Note']]).setFontWeight('bold').setBackground('#e8eefc');
+  sh.setFrozenRows(1); sh.setColumnWidth(3, 130); sh.setColumnWidth(5, 220);
+  sh.getRange('A2:A2000').setNumberFormat('yyyy-mm-dd');
+  sh.getRange('C2:C2000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(SUGAR_TYPES, true).build());
+  sh.getRange('H1:L1').setValues([['Averages', 'From', 'To', '', '']]).setFontWeight('bold');
+  sh.getRange('I2').setFormula('=TODAY()-29'); sh.getRange('J2').setFormula('=TODAY()');
+  sh.getRange('I2:J2').setNumberFormat('yyyy-mm-dd').setBackground('#fff8e1');
+  sh.getRange('H3:L3').setValues([['Type', 'Average', 'Readings', 'Lowest', 'Highest']]).setFontWeight('bold');
+  const rng = '$A$2:$A,">="&$I$2,$A$2:$A,"<="&$J$2';
+  ['All readings'].concat(SUGAR_TYPES).forEach((t, k) => {
+    const r = 4 + k, cond = k === 0 ? '' : `,$C$2:$C,"${t}"`;
+    sh.getRange(r, 8).setValue(t);
+    sh.getRange(r, 9).setFormula(`=IFERROR(ROUND(AVERAGEIFS($D$2:$D,${rng}${cond}),0),"-")`);
+    sh.getRange(r, 10).setFormula(`=COUNTIFS(${rng}${cond},$D$2:$D,"<>")`);
+    sh.getRange(r, 11).setFormula(`=IFERROR(MINIFS($D$2:$D,${rng}${cond}),"-")`);
+    sh.getRange(r, 12).setFormula(`=IFERROR(MAXIFS($D$2:$D,${rng}${cond}),"-")`);
+  });
+  sh.getRange('H11').setValue('Change From / To (yellow) to see any period.').setFontStyle('italic');
+  sh.setColumnWidth(8, 150);
+  return sh;
+}
+function readSugar_(n) {
+  const sh = sugarSheet_(), last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 5).getDisplayValues().filter(r => r[0] && r[3]).slice(-n)
+    .map(r => ({ date: r[0], time: r[1], type: r[2], value: r[3], note: r[4] }));
+}
+function addSugar_(b) {
+  const v = Number(b.value), date = String(b.date || '').slice(0, 10);
+  if (!(v > 20 && v < 700)) return { ok: false, error: 'reading should be in mg/dL (20–700)' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: 'bad date' };
+  const [y, m, d] = date.split('-').map(Number);
+  const type = SUGAR_TYPES.indexOf(b.type) >= 0 ? b.type : 'Random';
+  sugarSheet_().appendRow([new Date(y, m - 1, d), String(b.time || '').slice(0, 5), type, v, String(b.note || '').slice(0, 200)]);
+  return { ok: true };
+}
+
 /* ------- automatic Correct / Wrong at 3:45 PM for plain stock / index entries ------- */
 function autoResult() {
   const tz = 'Asia/Kolkata', now = new Date(), day = Utilities.formatDate(now, tz, 'u');
@@ -202,7 +322,7 @@ function installAutoResult() {
 function setToken() {
   let t = props_().getProperty('BRIEF_TOKEN');
   if (!t) { t = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, ''); props_().setProperty('BRIEF_TOKEN', t); }
-  journalKey_(); journalSheet_(); readTasks_(); readEmails_(); readWatch_();   // permission prompts + creates the journal tab
+  journalKey_(); journalSheet_(); habitSheet_(); sugarSheet_(); readTasks_(); readEmails_(); readWatch_();   // permission prompts + creates the journal tab
   Logger.log('GAS_TOKEN = ' + t);
 }
 function testOutput() {

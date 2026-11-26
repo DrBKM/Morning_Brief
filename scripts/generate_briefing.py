@@ -39,7 +39,7 @@ LOCAL_AREA = os.environ.get("BRIEF_LOCAL_AREA") or "Purulia, West Bengal"
 GAS_URL = os.environ.get("GAS_URL", "").strip()
 GAS_TOKEN = os.environ.get("GAS_TOKEN", "").strip()
 PASSPHRASE = os.environ.get("BRIEF_PASSPHRASE", "")
-MAX_SEARCHES = 9          # each web search costs $0.01; this caps the daily search bill
+MAX_SEARCHES = 12         # each web search costs $0.01; this caps the daily search bill
 UA = {"User-Agent": "Mozilla/5.0 (Morning_Brief bot)"}
 
 
@@ -250,11 +250,20 @@ preprints; include at most 3 arXiv preprints. Cover all five topics if candidate
 def jobs_and_events():
     prompt = f"""Today is {TODAY}. Use web search to find two things. Keep searches focused.
 
-A) JOBS: currently open Assistant Professor posts in PHYSICS anywhere in India (IITs, IISERs, NITs,
-IIITs, central and state universities, NISER, IISc, reputed private universities). Only posts whose
-application deadline has not passed. Include only posts paying at least INR 1,00,000 per month:
-advertised pay of 1 lakh or more, or 7th CPC Academic Pay Level 10 or higher (Level 12 at IITs/IISERs
-is clearly above 1 lakh; for Level 10 say "about ₹1 L with DA/HRA"). Up to 10 posts, newest first.
+A) JOBS for a physicist with a Ph.D. and postdocs in EXPERIMENTAL nanomagnetism, magnonics and spintronics,
+who is also building skills in AI / machine learning and quantum computing. Find currently open posts
+(deadline not passed), newest first, up to 15 in total, across these kinds:
+  1. Faculty: Assistant Professor in Physics in India (IITs, IISERs, NITs, NISER, IISc, central/state universities,
+     and reputed PRIVATE universities/institutes).
+  2. Postdoc / research scientist positions in nanomagnetism, magnonics, spintronics, AI/ML or quantum computing,
+     in India or abroad.
+  3. Industry / company R&D jobs matching these fields: magnetic memory (MRAM), spintronic sensors, hard disk /
+     storage, semiconductor and thin-film R&D, quantum computing hardware or software, AI/ML research or engineering
+     roles open to physicists.
+Pay rule: in India at least INR 1,00,000 per month (or 7th CPC Academic Level 10 or higher; say "about ₹1 L with
+DA/HRA" for Level 10); abroad at least INR 5,00,000 per month equivalent (about USD 6,000 / EUR 5,500 / GBP 4,700 /
+SGD 8,000 / JPY 900,000 per month). Give the advertised pay with an INR per-month estimate. Skip posts that clearly
+pay less; if pay is not stated, include it only for well-known employers and write "not stated".
 
 B) LOCAL EVENTS: worthwhile public events in or near {LOCAL_AREA} in the next 7 days: science, education,
 culture, music, fairs, festivals, talks, family outings. Up to 6.
@@ -263,9 +272,10 @@ Use only facts from your search results; give the page URL where you found each 
 deadlines, salaries or dates: write "see advert" if unknown.
 
 {JSON_ONLY} Schema:
-{{"jobs": [{{"post": "...", "institution": "...", "location": "...", "pay": "...", "deadline": "...", "url": "..."}}],
+{{"jobs": [{{"type": "Faculty" | "Postdoc" | "Industry", "region": "India" | "Abroad", "post": "...",
+            "institution": "...", "location": "...", "pay": "...", "deadline": "...", "url": "..."}}],
   "events": [{{"name": "...", "when": "...", "where": "...", "why": "one short line", "url": "..."}}]}}"""
-    text, urls = claude(prompt, SEARCH_MODEL, 3000, search=True)
+    text, urls = claude(prompt, SEARCH_MODEL, 5000, search=True)
     d = parse_json(text)
     for k in ("jobs", "events"):         # drop any link that did not come from the search results
         for it in d.get(k, []):
