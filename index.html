@@ -78,6 +78,18 @@
 
   main{padding:24px 28px; display:grid; grid-template-columns:repeat(12,1fr); gap:18px; max-width:1400px; margin:0 auto;}
   .card{scroll-margin-top:110px;}
+  .band{border:1px solid var(--border); border-radius:6px; padding:16px 20px; min-height:84px; margin-top:8px;
+    background-color:#10161D; background-size:cover; background-position:right center; background-repeat:no-repeat; position:relative; overflow:hidden;}
+  .band::before{content:""; position:absolute; inset:0; background:linear-gradient(90deg,#10161D 0%,rgba(16,22,29,.85) 40%,rgba(16,22,29,0) 70%);}
+  .band h3,.band p{position:relative;}
+  .band h3{font-size:24px; font-weight:700; letter-spacing:.3px;}
+  .band p{color:var(--muted); font-size:13px; margin-top:2px;}
+  .hero-chips.quick{margin-top:8px; align-items:center;}
+  .hero-chips.quick span{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.06em; margin:0 2px 0 6px;}
+  .hero-chips.quick span:first-child{margin-left:0;}
+  .spark{height:150px; margin-top:12px;}
+  .spark svg{width:100%; height:122px; display:block;}
+  .spark-lbl{white-space:nowrap; gap:8px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--faint); margin-top:6px;}
   .card{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px 20px;}
   .card h2{font-size:19px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;}
   .card .sub{color:var(--muted); font-size:12.5px; margin-bottom:14px;}
@@ -196,6 +208,18 @@
       <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
       <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-tasks">Tasks</a><a href="#sec-mail">Emails</a>
     </nav>
+    <nav class="hero-chips quick" aria-label="Quick links">
+      <span>Tools</span>
+      <a href="https://www.screener.in/" target="_blank" rel="noopener">Screener ↗</a>
+      <a href="https://chartink.com/scan_dashboard" target="_blank" rel="noopener">Chartink ↗</a>
+      <a href="https://www.tradingview.com/chart/" target="_blank" rel="noopener">TradingView ↗</a>
+      <a href="https://www.nseindia.com/" target="_blank" rel="noopener">NSE ↗</a>
+      <span>Brokers</span>
+      <a href="https://login.dhan.co/" target="_blank" rel="noopener">Dhan ↗</a>
+      <a href="https://kite.zerodha.com/" target="_blank" rel="noopener">Zerodha Kite ↗</a>
+      <a href="https://pro.upstox.com/" target="_blank" rel="noopener">Upstox ↗</a>
+      <a href="https://simplehai.axisdirect.in/" target="_blank" rel="noopener">Axis Direct ↗</a>
+    </nav>
   </div>
 </section>
 
@@ -208,6 +232,7 @@
 
 <main>
 
+  <div class="band span12" style="background-image:url(assets/band-markets.svg)"><h3>Markets today</h3><p>Overnight news, central banks, Sensex &amp; Nifty and stocks in focus</p></div>
   <section class="card span8">
     <h2>1 · Overnight Global Events &amp; Sentiment <span class="tag manual" id="tagGlobal">fill in daily</span></h2>
     <p class="sub">Auto-filled by GitHub Actions at 8:05 AM IST from RSS headlines — edit freely, it's overwritten fresh each morning.</p>
@@ -223,19 +248,19 @@
 
   <section class="card span6" id="sec-markets">
     <h2>3 · Sensex &amp; Nifty — Today's Read</h2>
-    <p class="sub">Live charts by TradingView (exchange data may be delayed). Previous close is filled automatically by the morning run.</p>
+    <p class="sub">Last close and a 3-month daily chart, filled automatically by the morning run. For live charts, use the links below (TradingView does not allow these Indian indices in embedded widgets).</p>
     <div class="idx-grid">
       <div class="idx-box">
         <div class="lbl">SENSEX · last close <span id="sensexDate"></span></div>
         <div class="big mono" id="sensexClose">—</div>
         <div class="chg" id="sensexChg" style="color:var(--muted);">waiting for the morning run</div>
-        <div class="tv" id="tvSensex"></div>
+        <div class="spark" id="sparkSensex"></div>
       </div>
       <div class="idx-box">
         <div class="lbl">NIFTY 50 · last close <span id="niftyDate"></span></div>
         <div class="big mono" id="niftyClose">—</div>
         <div class="chg" id="niftyChg" style="color:var(--muted);">waiting for the morning run</div>
-        <div class="tv" id="tvNifty"></div>
+        <div class="spark" id="sparkNifty"></div>
       </div>
     </div>
     <p class="sub" style="margin-top:8px;">Open full chart: <a href="https://www.tradingview.com/chart/?symbol=BSE%3ASENSEX" target="_blank" rel="noopener">SENSEX</a> ·
@@ -265,6 +290,7 @@
     </ul>
   </section>
 
+  <div class="band span12" style="background-image:url(assets/band-trading.svg)"><h3>My trading</h3><p>Watchlist from FFA_TIE and your trade decisions</p></div>
   <section class="card span12" id="sec-watch">
     <h2>5 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
     <p class="sub">From your Google Sheet. Fundamentals come from Screener.in and are re-checked every 15 days (new stocks the next morning). Prices are last close; news is from the last 3 days, summarised by Claude.
@@ -296,6 +322,7 @@
     </table></div>
   </section>
 
+  <div class="band span12" style="background-image:url(assets/band-global.svg)"><h3>Global markets</h3><p>Gold, currency, bonds, crude and world indices</p></div>
   <section class="card span6">
     <h2>7 · Gold, Currency, Bonds, Crude <span class="tag live" id="commodTag">live · finnhub</span></h2>
     <p class="sub">Auto-refreshes every 5 minutes once an API key is saved.</p>
@@ -327,6 +354,7 @@
     </div>
   </section>
 
+  <div class="band span12" style="background-image:url(assets/band-science.svg)"><h3>Science &amp; career</h3><p>Physics jobs and the week's research in your fields</p></div>
   <section class="card span6" id="sec-jobs">
     <h2>9 · Physics Jobs — Assistant Professor <span class="tag live" id="tagJobs">₹1 L+ · India</span></h2>
     <p class="sub">Open posts found by Claude's web search this morning. Always check the official advert before applying.</p>
@@ -339,6 +367,7 @@
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
+  <div class="band span12" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, local events and important emails</p></div>
   <section class="card span6" id="sec-tasks">
     <h2>11 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
     <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
@@ -506,6 +535,7 @@ async function loadBriefing(){
       const c=document.getElementById(id+'Chg');
       if(q.chg!=null){ c.textContent=(q.chg>=0?'▲ ':'▼ ')+fmt(Math.abs(q.chg))+' ('+(q.pct>=0?'+':'')+q.pct+'%) vs prior day'; c.style.color=q.chg>=0?'var(--green)':'var(--red)'; }
     }
+    if(b.indices){ spark('sparkSensex',b.indices.sensex); spark('sparkNifty',b.indices.nifty); }
     document.getElementById('briefTime').textContent=genTime.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 
     if(b.regime_hint){
@@ -608,17 +638,20 @@ loadExtras();
 // ---------- date in header ----------
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'long',day:'numeric',month:'short',year:'numeric'});
 
-// ---------- TradingView index widgets ----------
-function tvWidget(id,symbol,range){
-  const box=document.getElementById(id); if(!box) return;
-  box.innerHTML='<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div></div>';
-  const sc=document.createElement('script'); sc.async=true;
-  sc.src='https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
-  sc.textContent=JSON.stringify({symbol:symbol,width:'100%',height:190,locale:'en',dateRange:range||'1M',colorTheme:'dark',
-    isTransparent:true,autosize:false,largeChartUrl:'',chartOnly:false,noTimeScale:false});
-  box.firstChild.appendChild(sc);
+// ---------- 3-month index charts (data from the morning run) ----------
+function spark(id,q){
+  const box=document.getElementById(id); if(!box||!q||!q.hist||q.hist.length<2) return;
+  const v=q.hist, W=600, H=150, P=6, lo=Math.min(...v), hi=Math.max(...v), r=(hi-lo)||1;
+  const X=i=>P+i*(W-2*P)/(v.length-1), Y=x=>H-P-(x-lo)/r*(H-2*P);
+  const d=v.map((x,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(x).toFixed(1)).join(' ');
+  const up=v[v.length-1]>=v[0], col=up?'#3ED18C':'#FF5F5F';
+  const fmt=n=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:0});
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="3-month chart">
+    <defs><linearGradient id="f${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".25"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${d} L${X(v.length-1)} ${H} L${X(0)} ${H} Z" fill="url(#f${id})"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+    <div class="spark-lbl"><span>${esc(q.dates[0])}</span><span>low ${fmt(lo)} · high ${fmt(hi)}</span><span>${esc(q.dates[q.dates.length-1])}</span></div>`;
 }
-tvWidget('tvSensex','BSE:SENSEX','1M'); tvWidget('tvNifty','NSEIX:NIFTY1!','1D');
 
 // ---------- watchlist table ----------
 function renderWatch(list){

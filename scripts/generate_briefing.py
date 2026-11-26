@@ -319,11 +319,11 @@ def encrypt(obj, passphrase):
 
 
 # ---------------------------------------------------------------- prices (Yahoo Finance chart API)
-def yahoo(sym):
-    """Last two daily closes for a Yahoo symbol, e.g. ^NSEI, ^BSESN, SBIN.NS."""
+def yahoo(sym, hist=False):
+    """Last close and change for a Yahoo symbol, e.g. ^NSEI, ^BSESN, SBIN.NS (hist=True adds 3 months of closes)."""
     try:
         r = requests.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(sym)}",
-                         params={"range": "5d", "interval": "1d"}, timeout=20, headers=UA)
+                         params={"range": "3mo" if hist else "5d", "interval": "1d"}, timeout=20, headers=UA)
         r.raise_for_status()
         res = r.json()["chart"]["result"][0]
         closes = [c for c in res["indicators"]["quote"][0]["close"] if c]
@@ -336,6 +336,9 @@ def yahoo(sym):
         if prev:
             out["chg"] = round(last - prev, 2)
             out["pct"] = round((last - prev) / prev * 100, 2)
+        if hist:
+            out["hist"] = [round(c, 2) for c in closes]
+            out["dates"] = [datetime.fromtimestamp(t, IST).strftime("%d %b") for t in ts]
         return out
     except Exception as ex:
         log(f"[warn] price {sym}: {ex}")
@@ -343,7 +346,7 @@ def yahoo(sym):
 
 
 def fetch_indices():
-    return {"sensex": yahoo("^BSESN"), "nifty": yahoo("^NSEI"), "banknifty": yahoo("^NSEBANK")}
+    return {"sensex": yahoo("^BSESN", True), "nifty": yahoo("^NSEI", True), "banknifty": yahoo("^NSEBANK")}
 
 
 # ---------------------------------------------------------------- stock watchlist (FFA_TIE tab)
