@@ -34,12 +34,12 @@ TODAY = NOW.strftime("%A, %d %B %Y")
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 MODEL = os.environ.get("BRIEF_MODEL") or "claude-sonnet-5-5"
-SEARCH_MODEL = os.environ.get("BRIEF_SEARCH_MODEL") or "claude-sonnet-5-5"
+SEARCH_MODEL = os.environ.get("BRIEF_SEARCH_MODEL") or "claude-haiku-5-5"
 LOCAL_AREA = os.environ.get("BRIEF_LOCAL_AREA") or "Purulia, West Bengal"
 GAS_URL = os.environ.get("GAS_URL", "").strip()
 GAS_TOKEN = os.environ.get("GAS_TOKEN", "").strip()
 PASSPHRASE = os.environ.get("BRIEF_PASSPHRASE", "")
-MAX_SEARCHES = 6          # each web search costs $0.01; this caps the daily search bill
+MAX_SEARCHES = 9          # each web search costs $0.01; this caps the daily search bill
 UA = {"User-Agent": "Mozilla/5.0 (Morning_Brief bot)"}
 
 
