@@ -15,8 +15,8 @@ Secrets (GitHub repo -> Settings -> Secrets and variables -> Actions):
   BRIEF_PASSPHRASE    passphrase that locks the private section on the page
 Optional repository variables (same page, "Variables" tab):
   BRIEF_LOCAL_AREA    e.g. "Purulia, West Bengal"
-  BRIEF_MODEL         model for summaries      (default claude-sonnet-5-5)
-  BRIEF_SEARCH_MODEL  model for web search     (default claude-sonnet-5-5)
+  BRIEF_MODEL         model for summaries      (default claude-haiku-5-5, the cheapest)
+  BRIEF_SEARCH_MODEL  model for web search     (default claude-haiku-5-5)
 """
 import base64
 import json
@@ -33,13 +33,13 @@ NOW = datetime.now(IST)
 TODAY = NOW.strftime("%A, %d %B %Y")
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-MODEL = os.environ.get("BRIEF_MODEL") or "claude-sonnet-5-5"
+MODEL = os.environ.get("BRIEF_MODEL") or "claude-haiku-5-5"
 SEARCH_MODEL = os.environ.get("BRIEF_SEARCH_MODEL") or "claude-haiku-5-5"
 LOCAL_AREA = os.environ.get("BRIEF_LOCAL_AREA") or "Purulia, West Bengal"
 GAS_URL = os.environ.get("GAS_URL", "").strip()
 GAS_TOKEN = os.environ.get("GAS_TOKEN", "").strip()
 PASSPHRASE = os.environ.get("BRIEF_PASSPHRASE", "")
-MAX_SEARCHES = 12         # each web search costs $0.01; this caps the daily search bill
+MAX_SEARCHES = 6          # each web search costs $0.01; this caps the daily search bill
 UA = {"User-Agent": "Mozilla/5.0 (Morning_Brief bot)"}
 
 
@@ -153,11 +153,11 @@ def fetch_private():
 
 
 # ---------------------------------------------------------------- Claude
-def claude(prompt, model, max_tokens=1500, search=False, system=None):
+def claude(prompt, model, max_tokens=1500, search=False, system=None, max_uses=None):
     """Returns (text, urls_seen_in_search_results)."""
     tools = []
     if search:
-        tools = [{"type": "web_search_20250305", "name": "web_search", "max_uses": MAX_SEARCHES,
+        tools = [{"type": "web_search_20250305", "name": "web_search", "max_uses": max_uses or MAX_SEARCHES,
                   "user_location": {"type": "approximate", "country": "IN", "timezone": "Asia/Kolkata"}}]
     messages = [{"role": "user", "content": prompt}]
     urls, text = set(), ""
@@ -309,6 +309,17 @@ and automated notices unless they contain a deadline.
             mails.append({"from": m.get("from", ""), "subject": m.get("subject", ""), "date": m.get("date", ""),
                           "link": m.get("link", ""), "why": e.get("why", ""), "action": e.get("action", "")})
     return {"tasks": [], "emails": mails, "sheet": tasks.get("sheet", "")}
+
+
+def decrypt(blob, passphrase):
+    """Opens the previous run's private section (used to reuse the weekend watchlist)."""
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    d = lambda x: base64.b64decode(x)
+    key = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=d(blob["salt"]),
+                     iterations=blob.get("iter", 250000)).derive(passphrase.encode())
+    return json.loads(AESGCM(key).decrypt(d(blob["iv"]), d(blob["ct"]), None))
 
 
 def encrypt(obj, passphrase):
@@ -493,6 +504,138 @@ Use only the figures given. If a figure is missing, leave it out.
                     batch[i][0]["fund_new"] = True
         except Exception as ex:
             log(f"[error] fundamentals batch: {ex}")
+
+
+PI_DAYS = 30           # the PI / grants list is searched again after this many days
+PI_SEARCHES = 10       # web searches allowed for that monthly scan
+WEEKEND = NOW.weekday() >= 5               # Saturday / Sunday: markets shut, reuse Friday's market analysis
+JOB_DAYS = (0, 2, 4)                       # job & event search on Mon, Wed, Fri only (other days reuse the last list)
+
+
+def pi_due(p):
+    if os.environ.get("BRIEF_FORCE_PI") == "1":
+        return True
+    last = ((p or {}).get("pis") or {}).get("scanned", "")
+    try:
+        return (NOW.date() - datetime.strptime(last[:10], "%Y-%m-%d").date()).days >= PI_DAYS
+    except Exception:
+        return True
+
+
+def remaining(ends):
+    """'2029-06' or '2029' -> '2 yr 7 mo left' (or 'ended')."""
+    m = re.match(r"(\d{4})(?:-(\d{1,2}))?", str(ends or ""))
+    if not m:
+        return ""
+    y, mo = int(m.group(1)), int(m.group(2) or 12)
+    left = (y - NOW.year) * 12 + (mo - NOW.month)
+    if left < 0:
+        return "ended"
+    if left == 0:
+        return "ends this month"
+    parts = ([f"{left // 12} yr"] if left >= 12 else []) + ([f"{left % 12} mo"] if left % 12 else [])
+    return " ".join(parts) + " left"
+
+
+def pi_scan():
+    prompt = f"""Today is {TODAY}. Use web search to build a list of principal investigators (PIs) anywhere in the world
+who currently hold LARGE research grants, for a physicist (Ph.D., experimental nanomagnetism, magnonics, spintronics;
+also building AI/ML and quantum-computing skills) who wants to approach them for positions.
+
+Areas (aim for about 6 PIs in each, 18 in total):
+  1. "Magnetism & Spintronics": EXPERIMENTAL groups only (magnetism, spintronics, magnonics, 2-D magnets, MRAM devices).
+     Skip purely theoretical or computational PIs.
+  2. "AI / ML": theory or experiment, preferably AI for science / physics / materials.
+  3. "Quantum computation": theory or experiment (hardware, algorithms, error correction, quantum materials for qubits).
+"Large" means a single active grant of roughly USD 2 million or more, or a centre / programme the PI leads, e.g. ERC
+Advanced, Synergy or Consolidator, Leibniz Prize, DFG CRC/SFB speaker, UKRI programme grant or Future Leaders,
+NSF/DOE/DARPA/AFOSR MURI or centre awards, ARC Laureate, JST CREST/ERATO, Singapore NRF Investigatorship/CRP,
+Moore / Simons / Wellcome Leap awards, India ANRF / DST / National Quantum Mission hubs.
+The grant must still be running (end date after today).
+
+For each PI give only facts found in your search results:
+- email: ONLY if it is written on an official university / institute page you found; otherwise "".
+- website: the group or official profile page URL.
+- grant: name of grant / funder; amount: as stated, with currency; inr: rough INR equivalent (e.g. "₹21 Cr").
+- ends: end year-month like "2029-06" (or just "2029"); "" if unknown.
+- hiring: "Yes" if the group or grant page currently advertises a PERMANENT or long-term staff post
+  (staff scientist, research engineer, lab manager, permanent researcher), "Postdoc/PhD only" if only temporary posts
+  are advertised, otherwise "Not stated". hiring_note: one short line or the jobs page URL.
+- source: the URL where the grant facts were found.
+Do not invent names, emails, amounts or dates.
+
+{JSON_ONLY} Schema:
+{{"pis": [{{"area": "Magnetism & Spintronics" | "AI / ML" | "Quantum computation", "pi": "...", "email": "...",
+           "website": "...", "institution": "...", "country": "...", "grant": "...", "amount": "...", "inr": "...",
+           "ends": "...", "hiring": "...", "hiring_note": "...", "source": "..."}}]}}"""
+    text, urls = claude(prompt, SEARCH_MODEL, 8000, search=True, max_uses=PI_SEARCHES)
+    rows = parse_json(text).get("pis", [])
+    for r in rows:
+        for k in ("website", "source"):
+            if r.get(k) and r[k] not in urls:
+                r[k] = ""
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[a-z]{2,}", str(r.get("email", "")), re.I):
+            r["email"] = ""
+        r["remaining"] = remaining(r.get("ends"))
+    rows = [r for r in rows if r.get("pi") and r.get("remaining") != "ended"]
+    log(f"[info] PI scan: {len(rows)} PIs")
+    return rows
+
+
+GOV_SEARCHES = 5       # web searches for the monthly government-funding scan
+
+
+def gov_scan():
+    prompt = f"""Today is {TODAY}. Use web search to list CURRENT government funding initiatives (national missions,
+programmes, flagship centres) worldwide for these fields: (a) magnetism / spintronics / quantum materials,
+(b) artificial intelligence / machine learning, (c) quantum computing and quantum technologies.
+Cover India first (e.g. National Quantum Mission and its hubs, IndiaAI Mission, ANRF / DST programmes), then
+Singapore, USA, EU / Europe, UK, Germany, Japan, South Korea, China, Australia, Canada and others with large budgets.
+About 12 rows. Only initiatives that are still running (end after today) or newly announced.
+
+For each give only facts from your search results:
+- country; programme; field: "Magnetism & Spintronics" | "AI / ML" | "Quantum" | "Several";
+- amount: total budget as stated with currency; inr: rough INR equivalent (e.g. "₹6,003 Cr");
+- period: e.g. "2023–2031"; ends: end year like "2031" ("" if unknown);
+- institutions: the main host institutions / hubs / centres funded (short, comma-separated);
+- jobs: "Yes" if the programme or its hubs advertise positions now (give the page in jobs_link), else "Not stated";
+- link: official page URL. Do not invent numbers.
+
+{JSON_ONLY} Schema:
+{{"gov": [{{"country": "...", "programme": "...", "field": "...", "amount": "...", "inr": "...", "period": "...",
+           "ends": "...", "institutions": "...", "jobs": "...", "jobs_link": "...", "link": "..."}}]}}"""
+    text, urls = claude(prompt, SEARCH_MODEL, 5000, search=True, max_uses=GOV_SEARCHES)
+    rows = parse_json(text).get("gov", [])
+    for r in rows:
+        for k in ("link", "jobs_link"):
+            if r.get(k) and r[k] not in urls:
+                r[k] = ""
+        r["remaining"] = remaining(r.get("ends"))
+    rows = [r for r in rows if r.get("programme") and r.get("remaining") != "ended"]
+    log(f"[info] government funding scan: {len(rows)} programmes")
+    return rows
+
+
+def pi_update(p):
+    """Returns the PI list: a fresh monthly scan when due, otherwise what is stored in the PI_Grants tab."""
+    stored = (p or {}).get("pis") or {}
+    keep = {"scanned": stored.get("scanned", ""), "rows": stored.get("rows", []), "gov": stored.get("gov", [])}
+    if not pi_due(p):
+        log(f"[info] PI list: last scanned {stored.get('scanned')}, next scan after {PI_DAYS} days")
+        return keep
+    rows = step("PI scan", pi_scan, default=[]) or []
+    gov = step("government funding", gov_scan, default=[]) or []
+    if not rows and not gov:
+        return keep
+    rows, gov = rows or keep["rows"], gov or keep["gov"]
+    try:
+        r = requests.post(GAS_URL, data=json.dumps({"token": GAS_TOKEN, "action": "pis", "rows": rows, "gov": gov,
+                                                     "date": NOW.strftime("%Y-%m-%d")}), timeout=60,
+                          headers={"Content-Type": "text/plain"})
+        log(f"[info] PI_Grants write: {r.text[:120]}")
+    except Exception as ex:
+        log(f"[warn] PI_Grants write failed: {ex}")
+    return {"scanned": NOW.strftime("%Y-%m-%d"), "rows": rows, "gov": gov}
 
 
 def write_watch_back(stocks):
@@ -681,6 +824,18 @@ def main():
     
 
     out = {"generated_at": datetime.now(timezone.utc).isoformat(), "local_area": LOCAL_AREA}
+    try:
+        with open("data/briefing.json") as f:
+            prev = json.load(f)
+    except Exception:
+        prev = {}
+    prev_priv = {}
+    if prev.get("private") and PASSPHRASE:
+        try:
+            prev_priv = decrypt(prev["private"], PASSPHRASE)
+        except Exception as ex:
+            log(f"[warn] could not open the previous private section: {ex}")
+    market_keys = ("global_events", "central_banks", "policy_sentiment", "stocks_to_watch", "regime_hint")
     out["indices"] = fetch_indices()
     out["derivs"] = fetch_derivatives()
     log(f"[info] indices: {out['indices']}")
@@ -688,7 +843,11 @@ def main():
     headlines = fetch_headlines()
     log(f"[info] {len(headlines)} market headlines")
     out["headlines"] = headlines[:20]
-    out.update(step("market summary", market_summary, headlines, default={
+    if WEEKEND and prev.get("global_events"):
+        log("[info] weekend: market summary reused from the last weekday (saves a Claude call)")
+        out.update({k: prev.get(k) for k in market_keys})
+    else:
+      out.update(step("market summary", market_summary, headlines, default={
         "global_events": "Auto-summary unavailable this run — check sources manually.",
         "central_banks": "Auto-summary unavailable this run — check sources manually.",
         "policy_sentiment": "Auto-summary unavailable this run — check sources manually.",
@@ -698,19 +857,30 @@ def main():
     log(f"[info] {len(cands)} research candidates")
     out["research"] = step("research", research_pick, cands, default=[]) or []
 
-    je = step("jobs/events", jobs_and_events, default={}) or {}
-    out["jobs"], out["events"] = je.get("jobs", []), je.get("events", [])
+    if NOW.weekday() in JOB_DAYS or not prev.get("jobs"):
+        je = step("jobs/events", jobs_and_events, default={}) or {}
+    else:
+        log("[info] jobs/events: reusing the last search (searched on Mon, Wed and Fri)")
+        je = {}
+    out["jobs"] = je.get("jobs") or prev.get("jobs", [])
+    out["events"] = je.get("events") or prev.get("events", [])
+    out["jobs_checked"] = prev.get("jobs_checked", "") if not je else NOW.strftime("%Y-%m-%d")
 
     p = fetch_private()
     if p:
         digest = step("tasks/emails", private_digest, p, default=None) or {"tasks": [], "emails": []}
         if p.get("watch", {}).get("error"):
             log(f"[warn] watchlist: {p['watch']['error']}")
-        stocks = step("watchlist", watchlist_update, p.get("watch"), default=[]) or []
-        log(f"[info] watchlist: {len(stocks)} stocks updated")
-        step("fundamentals", fundamentals_update, stocks)
-        write_watch_back(stocks)
+        if WEEKEND and prev_priv.get("watch"):
+            stocks = prev_priv["watch"]
+            log("[info] weekend: watchlist news reused from the last weekday")
+        else:
+            stocks = step("watchlist", watchlist_update, p.get("watch"), default=[]) or []
+            log(f"[info] watchlist: {len(stocks)} stocks updated")
+            step("fundamentals", fundamentals_update, stocks)
+            write_watch_back(stocks)
         digest["watch"] = stocks
+        digest["pis"] = p.get("pis") or {}          # PI_Grants + Gov_Funds tabs, filled in by you
         digest["journal"] = {"url": GAS_URL, "key": p.get("journalKey", "")}
         if PASSPHRASE:
             out["private"] = encrypt(digest, PASSPHRASE)

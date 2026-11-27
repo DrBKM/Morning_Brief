@@ -90,6 +90,18 @@
   .installbar button{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px; border-radius:4px; font-size:12.5px; cursor:pointer;}
   .installbar button.x{background:transparent; color:var(--muted); padding:6px 8px;}
   .tabbar{display:none;}
+  .pg-off{display:none !important;} section.card{scroll-margin-top:170px;}
+  .pagenav{grid-column:1/-1; width:100%; display:flex; gap:4px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);}
+  .pagenav a{color:var(--muted); text-decoration:none; font-size:13.5px; font-weight:600; padding:6px 12px; border-radius:5px;}
+  .pagenav a:hover{color:var(--ink); background:var(--panel2);} .pagenav a.on{color:#14181f; background:var(--amber);}
+  .homegrid{padding:0; background:none; border:none;}
+  .hg{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px;}
+  .hgc{border:1px solid var(--border); border-radius:8px; padding:16px; background-size:cover; background-position:center;}
+  .hgt{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink);} .hgt svg{width:26px; height:26px; fill:none; stroke:var(--amber); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .hgt b{font-size:19px; flex:1;} .hgt span{color:var(--amber); font-size:13px; font-weight:600;}
+  .hgc p{color:#C9D3DC; font-size:13px; margin:6px 0 10px;}
+  .hgl{display:flex; flex-wrap:wrap; gap:6px;} .hgl a,.hgl span{font-size:12.5px; color:var(--ink); background:rgba(255,255,255,.07); border:1px solid var(--border); border-radius:20px; padding:4px 10px; text-decoration:none;}
+  .hgl a:hover{border-color:var(--amber);}
   .occtl{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:10px;}
   .ocstats{display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-bottom:10px;}
   .ocstats div{background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:8px 10px;}
@@ -112,6 +124,10 @@
   @media (max-width:640px){ .ptbl{min-width:0; font-size:12.5px;} .ptbl .lng{display:none;} .ptbl th,.ptbl td{padding:7px 4px;}
     .ptbl .lab{padding:3px 5px; font-size:11px; white-space:normal;} .ptbl td.bearc,.ptbl td.bullc{width:auto;} .ptbl .c6{display:none;} .ptbl small.chgm{display:block; font-size:11px;} }
   .ptbl .chgm.up{color:var(--green);} .ptbl .chgm.down{color:var(--red);}
+  .ptbl.pitbl{min-width:760px !important;} .pitbl td{vertical-align:top;} .pitbl td.pin b{display:block;} .pitbl td.pin a, .pitbl td.pin span{font-size:12px; color:var(--amber); word-break:break-all;}
+  .pi-remind{margin:10px 0; padding:10px 14px; border:1px solid var(--amber); border-radius:6px; background:rgba(232,163,61,.1); font-size:13.5px;} .pi-remind a,#piStamp a,#govLink{color:var(--amber);}
+  .subh{font-size:16px; margin:22px 0 4px; color:var(--ink);}
+  .pitbl td small{display:block; color:var(--muted); font-size:12px;} .pitbl .hy{color:var(--green); font-weight:700;} .pitbl .ar{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
   .ptbl .lab.bear{background:#B5524C;} .ptbl .lab.bull{background:#3B8D55;} .ptbl td.ind{text-align:center; color:var(--muted);}
   .jobfilter{display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 10px;}
   .jobfilter button,.hab-btns button{background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer;}
@@ -133,7 +149,7 @@
   .jform.sugar{grid-template-columns:repeat(6,minmax(0,1fr));}
   @media(max-width:760px){
     body{padding-bottom:calc(76px + env(safe-area-inset-bottom));}
-    header{position:static; padding-top:calc(14px + env(safe-area-inset-top));}
+    header{position:static; padding-top:calc(14px + env(safe-area-inset-top));} .pagenav{display:none;} section.card{scroll-margin-top:12px;}
     .brand p{display:none;} .brand h1{font-size:24px;}
     header .clockbar .item:nth-child(n+3){display:none;}
     .tabbar{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:20; background:rgba(10,14,19,.97); backdrop-filter:blur(8px);
@@ -285,7 +301,7 @@
     <img class="brand-logo" src="assets/logo.svg" width="42" height="42" alt="">
     <div>
     <h1>8:30 <span>Desk</span></h1>
-    <p>Markets · physics jobs · research · local events · tasks &amp; mail</p>
+    <p>Markets · trading · physics careers · my day</p>
     </div>
   </div>
   <div class="clockbar">
@@ -295,22 +311,25 @@
     <div class="item"><span class="lbl">NEXT REFRESH</span><span class="val" id="nextRefresh">5:00</span></div>
     <div class="item"><span class="lbl">BRIEF PREPARED</span><span class="val" id="briefTime">--</span></div>
   </div>
+  <nav class="pagenav" id="pageNav" aria-label="Pages">
+    <a href="#home">Home</a><a href="#markets">Markets</a><a href="#trading">My trading</a><a href="#global">Global</a><a href="#science">Science &amp; career</a><a href="#myday">My day</a>
+  </nav>
 </header>
 
 <div class="keybar unlockbar" id="lockbox">
-  <span>🔒 Watchlist, trade journal, tasks and emails are locked. Passphrase:</span>
+  <span>🔒 Watchlist, trade journal, writing, projects, PI list and emails are locked. Passphrase:</span>
   <input type="password" id="pp" autocomplete="current-password">
   <label><input type="checkbox" id="ppKeep" checked> remember on this device</label>
   <button onclick="unlock()">Unlock</button><span id="ppMsg"></span>
 </div>
 
-<section class="hero" aria-label="Today">
+<section class="hero" aria-label="Today" data-page="home">
   <div class="hero-in">
     <div class="hero-greet" id="heroGreet">Good morning</div>
     <div class="hero-sub"><span id="heroDate"></span> · market opens 9:15 AM IST</div>
     <nav class="hero-chips">
       <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-oc">Option chain</a><a href="#sec-fii">FII / DII</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
-      <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-write">Writing</a><a href="#sec-proj">Projects</a><a href="#sec-mail">Emails</a>
+      <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-pi">PI grants</a><a href="#sec-write">Writing</a><a href="#sec-proj">Projects</a><a href="#sec-mail">Emails</a>
     </nav>
     <nav class="hero-chips quick" aria-label="Quick links">
       <span>Tools</span>
@@ -334,7 +353,7 @@
   <button class="x" id="installX" aria-label="Dismiss">✕</button>
 </div>
 
-<div class="keybar">
+<div class="keybar" data-page="global">
   <span>Live US/forex/commodity data via Finnhub free tier.</span>
   <input type="text" id="apiKey" placeholder="Paste your free Finnhub API key">
   <button onclick="saveKey()">Save key</button>
@@ -342,6 +361,7 @@
 </div>
 
 <main>
+  <section class="card span12 homegrid" id="homeGrid" data-page="home" aria-label="Pages"></section>
 
   <div class="band span12" id="grp-markets" style="background-image:url(assets/band-markets.svg)"><h3>Markets today</h3><p>Overnight news, Sensex &amp; Nifty, option chain, FII/DII and stocks in focus</p></div>
   <section class="card span8">
@@ -511,9 +531,25 @@
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
+  <section class="card span12" id="sec-pi">
+    <h2>13 · PIs with Big Grants <span class="tag manual" id="tagPi">private · from your Google Sheet</span></h2>
+    <p class="sub">Group leaders holding large running grants in experimental magnetism &amp; spintronics, AI / ML and quantum computation, worldwide.
+      You keep this list in the <b>PI_Grants</b> tab of your Google Sheet; you get a reminder on the 1st of every month to update it.
+      "Remaining" is worked out from the end date.</p>
+    <div class="jobfilter" id="piFilter"><button class="on" data-f="">All</button><button data-f="Magnetism & Spintronics">Magnetism &amp; Spintronics</button><button data-f="AI / ML">AI / ML</button><button data-f="Quantum computation">Quantum computation</button><button data-f="hire">Hiring permanent staff</button></div>
+    <div class="tblwrap"><table class="ptbl pitbl" id="piTbl"><thead><tr><th>PI · email</th><th>Institution</th><th>Grant</th><th class="r">Amount</th><th>Remaining</th><th>Permanent staff?</th><th>Website</th></tr></thead>
+      <tbody><tr><td colspan="7" class="empty">Unlock with your passphrase (bar at the top).</td></tr></tbody></table></div>
+    <p class="sub" id="piStamp" style="margin-top:8px"></p>
+    <div class="pi-remind" id="piRemind" hidden></div>
+    <h3 class="subh">Government funding &amp; institutions</h3>
+    <p class="sub">National missions and programmes funding these fields, with the institutions they fund (from the <b>Gov_Funds</b> tab). <a id="govLink" href="#" target="_blank" rel="noopener" hidden>Edit in Google Sheet ↗</a></p>
+    <div class="tblwrap"><table class="ptbl pitbl" id="govTbl"><thead><tr><th>Programme</th><th>Field</th><th class="r">Budget</th><th>Period · remaining</th><th>Main institutions / hubs</th><th>Jobs?</th></tr></thead>
+      <tbody><tr><td colspan="6" class="empty">Unlock with your passphrase (bar at the top).</td></tr></tbody></table></div>
+  </section>
+
   <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Daily writing, events, projects, emails, daily habits and health log</p></div>
   <section class="card span12" id="sec-write">
-    <h2>13 · Daily Writing — Evening Ritual <span class="tag manual" id="tagWrite">private · saved to Google Doc</span></h2>
+    <h2>14 · Daily Writing — Evening Ritual <span class="tag manual" id="tagWrite">private · saved to Google Doc</span></h2>
     <p class="sub">Write your lines for the day. They go into your <b>Evening_Rituals</b> doc under today's date, in the same style as your entries.
       Saving again the same day adds to today's entry. 200 words ticks <b>W</b> in Daily Habits.</p>
     <div class="wr-head"><b id="wrDay"></b><a id="wrOpen" href="#" target="_blank" rel="noopener" hidden>Open the doc ↗</a></div>
@@ -524,13 +560,13 @@
   </section>
 
   <section class="card span12">
-    <h2>14 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
+    <h2>15 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
     <p class="sub">Worthwhile events in the next 7 days.</p>
     <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <section class="card span12" id="sec-proj">
-    <h2>15 · Projects &amp; Small Tasks <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>16 · Projects &amp; Small Tasks <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">From the <b>Projects</b> tab. Give a quick update each day here, or change Status / Progress % in the sheet. Every update is kept in <b>Project_Log</b>.</p>
     <div class="pj-sum" id="pjSum"></div>
     <div class="jform pj">
@@ -548,14 +584,14 @@
   </section>
 
   <section class="card span12" id="sec-mail">
-    <h2>16 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
+    <h2>17 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
     <p class="sub">Important or starred Gmail that may need you today. Unlocks with the passphrase bar at the top.</p>
     <ul class="feed" id="mailList"><li class="empty">Locked.</li></ul>
     <p class="sub" style="margin-top:10px;"><a href="#" onclick="lockAgain();return false;">Lock again / forget passphrase on this device</a></p>
   </section>
 
   <section class="card span12" id="sec-habits">
-    <h2>17 · Daily Habits — WRYTINGS <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>18 · Daily Habits — WRYTINGS <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">Tap once for ✓ done, twice for ✗ not done, three times to clear. Saved in the <b>Habits</b> tab, which also counts them for any period.</p>
     <div class="hab-today">
       <input type="date" id="habDate">
@@ -574,7 +610,7 @@
   </section>
 
   <section class="card span12" id="sec-sugar">
-    <h2>18 · Diabetes Log <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>19 · Diabetes Log <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">Add a reading here or type it straight into the <b>Diabetes</b> tab. Averages are worked out for you, here and in the sheet.</p>
     <div class="jform sugar">
       <input type="date" id="sgDate"><input type="time" id="sgTime">
@@ -797,6 +833,7 @@ function renderPrivate(p){
   document.getElementById('lockbox').style.display='none';
   renderWatch(p.watch||[]);
   JR=p.journal||{}; loadJournal();
+  PIS=p.pis||null; drawPis(); drawGov();
   fill('mailList', p.emails, m=>`<li><span class="pill amb">${esc(m.action)}</span>${link(m.link, m.subject||'(no subject)')}
     <div class="m">${esc(m.from)}</div><div class="w">${esc(m.why)}</div></li>`, 'No important emails in the last 24 hours.');
 }
@@ -952,13 +989,40 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.s
   document.getElementById('installX').onclick=()=>{ bar.hidden=true; try{ localStorage.setItem('installDismissed','1'); }catch(e){} };
   window.addEventListener('appinstalled',()=>{ bar.hidden=true; });
 })();
-document.addEventListener('DOMContentLoaded',function(){
-  const tabs=[...document.querySelectorAll('.tabbar a')], bands=[...document.querySelectorAll('.band[id]')];
-  if(!tabs.length||!bands.length) return;
-  const mark=()=>{ let cur=bands[0].id; bands.forEach(b=>{ if(b.getBoundingClientRect().top<innerHeight*0.35) cur=b.id; });
-    tabs.forEach(t=>t.classList.toggle('on',t.getAttribute('href')==='#'+cur)); };
-  addEventListener('scroll',mark,{passive:true}); mark();
-});
+// ---------- pages: #home #markets #trading #global #science #myday ----------
+const PAGES={home:'Home',markets:'Markets',trading:'My trading',global:'Global markets',science:'Science & career',myday:'My day'};
+const BAND2PAGE={'grp-markets':'markets','grp-trading':'trading','grp-global':'global','grp-science':'science','grp-day':'myday'};
+let CURPAGE='';
+function pageSetup(){
+  let cur='markets';
+  [...document.querySelector('main').children].forEach(el=>{ if(BAND2PAGE[el.id]) cur=BAND2PAGE[el.id]; if(!el.dataset.page) el.dataset.page=cur; });
+  const icons={}; document.querySelectorAll('.tabbar a').forEach(a=>{ const s=a.querySelector('svg'); if(s) icons[a.getAttribute('href').slice(1)]=s.outerHTML; });
+  document.getElementById('homeGrid').innerHTML='<div class="hg">'+Object.keys(PAGES).filter(p=>p!=='home').map(p=>{
+    const band=document.querySelector(`.band[data-page="${p}"]`), secs=[...document.querySelectorAll(`main section.card[data-page="${p}"] h2`)];
+    const items=secs.map(h=>{ const t=h.firstChild.textContent.replace(/^\s*\d+\s*·\s*/,'').trim(), id=h.closest('section').id; return id?`<a href="#${id}">${esc(t)}</a>`:`<span>${esc(t)}</span>`; }).join('');
+    return `<div class="hgc" style="background-image:linear-gradient(180deg,rgba(13,17,23,.55),rgba(13,17,23,.96)),${band?band.style.backgroundImage:'none'}">
+      <a class="hgt" href="#${p}">${icons[p]||''}<b>${esc(PAGES[p])}</b><span>Open ›</span></a><p>${band?esc(band.querySelector('p').textContent):''}</p><div class="hgl">${items}</div></div>`;
+  }).join('')+'</div>';
+}
+function showPage(p, target){
+  if(p!==CURPAGE){
+    CURPAGE=p;
+    document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('pg-off',el.dataset.page!==p));
+    document.querySelectorAll('#pageNav a, .tabbar a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+p));
+    document.title=(p==='home'?'8:30 Desk — Morning Briefing':PAGES[p]+' · 8:30 Desk');
+    try{ localStorage.setItem('lastPage',p); }catch(e){}
+    if(p==='markets'&&typeof drawOC==='function') setTimeout(drawOC,0);
+  }
+  if(target) setTimeout(()=>target.scrollIntoView({behavior:'smooth',block:'start'}),30); else window.scrollTo(0,0);
+}
+function route(){
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(PAGES[h]) return showPage(h);
+  const el=h&&document.getElementById(h), host=el&&el.closest('[data-page]');
+  if(host) return showPage(BAND2PAGE[h]||host.dataset.page, BAND2PAGE[h]?null:el);
+  showPage('home');
+}
+pageSetup(); addEventListener('hashchange',route); route();
 
 // ---------- job filter ----------
 document.getElementById('jobFilter').addEventListener('click',e=>{
@@ -1049,6 +1113,43 @@ function drawSugar(){
   document.querySelector('#sgTbl tbody').innerHTML=SROWS.slice(-15).reverse().map(r=>`<tr><td class="num">${esc(r.date)}</td><td class="num">${esc(r.time)}</td><td>${esc(r.type)}</td><td class="num"><b>${esc(r.value)}</b></td><td>${esc(r.note)}</td></tr>`).join('')
     ||'<tr><td colspan="5" class="empty">No readings yet.</td></tr>';
 }
+// ---------- PIs with big grants (private, monthly) ----------
+let PIS=null, PIF='';
+function leftOf(e){ const m=String(e||'').match(/(\d{4})(?:[-\/.](\d{1,2}))?/); if(!m) return '';
+  const now=new Date(), left=(+m[1]-now.getFullYear())*12+((+m[2]||12)-(now.getMonth()+1));
+  return left<0?'ended':left===0?'ends this month':[left>=12?Math.floor(left/12)+' yr':'',left%12?left%12+' mo':''].filter(Boolean).join(' ')+' left'; }
+function drawPis(){
+  const tb=document.querySelector('#piTbl tbody'), rows=(PIS&&PIS.rows)||[];
+  if(!PIS){ return; }
+  const pl=PIS.piUrl?`<a href="${esc(PIS.piUrl)}" target="_blank" rel="noopener">Edit PI_Grants in Google Sheet ↗</a>`:'';
+  document.getElementById('piStamp').innerHTML=`${rows.length} PIs in your list. ${pl}`;
+  if(PIS.govUrl){ const g=document.getElementById('govLink'); g.href=PIS.govUrl; g.hidden=false; }
+  const d=+isoToday().slice(8,10), rm=document.getElementById('piRemind');
+  rm.hidden=d>3; rm.innerHTML=`🔔 <b>Monthly update due.</b> Add new PIs and programmes, and update amounts and end dates. ${pl}${PIS.govUrl?` · <a href="${esc(PIS.govUrl)}" target="_blank" rel="noopener">Gov_Funds ↗</a>`:''}`;
+  const L=rows.filter(r=>!PIF||(PIF==='hire'?/^yes/i.test(r.hiring):r.area===PIF));
+  const url=u=>/^https?:\/\//.test(u||'')?u:'';
+  tb.innerHTML=L.map(r=>`<tr><td class="pin"><b>${esc(r.pi)}</b>${r.email?`<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:'<small>email: see website</small>'}<small class="ar">${esc(r.area)}</small></td>
+    <td>${esc(r.institution)}<small>${esc(r.country)}</small></td>
+    <td>${esc(r.grant)}${url(r.source)?`<small><a href="${esc(r.source)}" target="_blank" rel="noopener">source</a></small>`:''}</td>
+    <td class="r">${esc(r.amount)}<small>${esc(r.inr)}</small></td>
+    <td>${esc(r.remaining||leftOf(r.ends)||'—')}<small>${r.ends?'ends '+esc(r.ends):''}</small></td>
+    <td class="${/^yes/i.test(r.hiring)?'hy':''}">${esc(r.hiring||'Not stated')}<small>${url(r.hiring_note)?`<a href="${esc(r.hiring_note)}" target="_blank" rel="noopener">jobs page</a>`:esc(r.hiring_note||'')}</small>${r.note?`<small>📝 ${esc(r.note)}</small>`:''}</td>
+    <td>${url(r.website)?`<a href="${esc(r.website)}" target="_blank" rel="noopener">group site ↗</a>`:'—'}</td></tr>`).join('')
+    ||`<tr><td colspan="7" class="empty">${rows.length?'None in this filter.':'Your PI_Grants tab is empty: add PIs there.'}</td></tr>`;
+}
+function drawGov(){
+  const tb=document.querySelector('#govTbl tbody'); if(!PIS) return;
+  const G=(PIS.gov||[]).filter(r=>!PIF||PIF==='hire'||r.field===PIF||r.field==='Several'||(PIF==='Quantum computation'&&r.field==='Quantum'));
+  const url=u=>/^https?:\/\//.test(u||'')?u:'';
+  tb.innerHTML=G.map(r=>`<tr><td class="pin"><b>${url(r.link)?`<a href="${esc(r.link)}" target="_blank" rel="noopener" style="font-size:inherit;color:inherit">${esc(r.programme)} ↗</a>`:esc(r.programme)}</b><small class="ar">${esc(r.country)}</small></td>
+    <td>${esc(r.field)}</td><td class="r">${esc(r.amount)}<small>${esc(r.inr)}</small></td>
+    <td>${esc(r.period||'—')}<small>${esc(r.remaining||leftOf(r.ends)||'')}</small></td><td>${esc(r.institutions)}</td>
+    <td class="${/^yes/i.test(r.jobs)?'hy':''}">${esc(r.jobs||'Not stated')}${url(r.jobs_link)?`<small><a href="${esc(r.jobs_link)}" target="_blank" rel="noopener">jobs page</a></small>`:''}</td></tr>`).join('')
+    ||`<tr><td colspan="6" class="empty">${(PIS.gov||[]).length?'None in this filter.':'Your Gov_Funds tab is empty: add programmes there.'}</td></tr>`;
+}
+document.getElementById('piFilter').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; PIF=b.dataset.f;
+  document.querySelectorAll('#piFilter button').forEach(x=>x.classList.toggle('on',x===b)); drawPis(); drawGov(); });
+
 // ---------- daily writing ritual (Google Doc) ----------
 let RIT=null;
 const wcount=t=>t.split(/\s+/).filter(Boolean).length;
@@ -1195,12 +1296,13 @@ document.getElementById('ocSym').addEventListener('click',e=>{ const b=e.target.
 document.getElementById('ocMode').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; OCMODE=b.dataset.m;
   document.querySelectorAll('#ocMode button').forEach(x=>x.classList.toggle('on',x===b)); drawOC(); });
 </script>
-<nav class="tabbar" aria-label="Sections">
-  <a href="#grp-markets"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Markets</a>
-  <a href="#grp-trading"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Trading</a>
-  <a href="#grp-global"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Global</a>
-  <a href="#grp-science"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></svg>Science</a>
-  <a href="#grp-day"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>My day</a>
+<nav class="tabbar" aria-label="Pages">
+  <a href="#home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10"/></svg>Home</a>
+  <a href="#markets"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Markets</a>
+  <a href="#trading"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Trading</a>
+  <a href="#global"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Global</a>
+  <a href="#science"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></svg>Science</a>
+  <a href="#myday"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>My day</a>
 </nav>
 </body>
 </html>

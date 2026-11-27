@@ -60,6 +60,7 @@ function doGet(e) {
     try { res.tasks = readTasks_(); } catch (err) { res.tasks = { error: String(err) }; }
     try { res.emails = readEmails_(); } catch (err) { res.emails = []; res.mailError = String(err); }
     try { res.watch = readWatch_(); } catch (err) { res.watch = { error: String(err) }; }
+    try { res.pis = readPis_(); } catch (err) { res.pis = { error: String(err) }; }
     return json_(res);
   }
   if (p.jkey && p.jkey === journalKey_()) {               // web page: journal, habits, sugar log
@@ -81,6 +82,7 @@ function doPost(e) {
   try {
     const token = props_().getProperty('BRIEF_TOKEN');
     if (b.action === 'watch' && token && b.token === token) return json_(writeWatch_(b.items || [], b.date || ''));
+    if (b.action === 'pis' && token && b.token === token) return json_(writePis_(b.rows || [], b.date || '', b.gov || []));
     if (b.jkey !== journalKey_()) return json_({ ok: false, error: 'unauthorised' });
     if (b.action === 'add') return json_(addTrade_(b.t || {}));
     if (b.action === 'result') return json_(setResult_(b));
@@ -363,6 +365,89 @@ function addSugar_(b) {
   const type = SUGAR_TYPES.indexOf(b.type) >= 0 ? b.type : 'Random';
   sugarSheet_().appendRow([new Date(y, m - 1, d), String(b.time || '').slice(0, 5), type, v, String(b.note || '').slice(0, 200)]);
   return { ok: true };
+}
+
+/* ---------------- PIs with big grants (refreshed once a month by the GitHub Action) ---------------- */
+const PI_TAB = 'PI_Grants';
+const PI_HEAD = ['Area', 'PI', 'Email', 'Website', 'Institution', 'Country', 'Grant / funder', 'Amount (approx)', 'In ₹ (approx)',
+                 'Ends', 'Remaining', 'Hiring permanent staff?', 'Hiring note / link', 'Source', 'My note'];
+const PI_KEYS = ['area', 'pi', 'email', 'website', 'institution', 'country', 'grant', 'amount', 'inr', 'ends', 'remaining', 'hiring', 'hiring_note', 'source'];
+function piSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(PI_TAB);
+  if (sh) return sh;
+  sh = ss.insertSheet(PI_TAB);
+  sh.getRange(1, 1, 1, PI_HEAD.length).setValues([PI_HEAD]).setFontWeight('bold').setBackground('#e8eefc');
+  sh.setFrozenRows(1); sh.setColumnWidth(2, 180); sh.setColumnWidth(7, 260); sh.setColumnWidth(13, 240); sh.setColumnWidth(15, 220);
+  sh.getRange('A2:A500').setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(['Magnetism & Spintronics', 'AI / ML', 'Quantum computation'], true).build());
+  sh.getRange('L2:L500').setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(['Yes', 'Postdoc/PhD only', 'Not stated'], true).build());
+  sh.getRange('J1').setNote('End of the grant, e.g. 2029 or 2029-06. Leave "Remaining" empty: the page works it out.');
+  return sh;
+}
+function readPis_() {
+  const sh = piSheet_(), last = sh.getLastRow();
+  const rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, PI_HEAD.length).getDisplayValues()
+    .filter(r => String(r[1]).trim()).map(r => { const o = {}; PI_KEYS.forEach((k, i) => o[k] = r[i]); o.note = r[14]; return o; });
+  let gov = [];
+  const g = govSheet_();
+  if (g.getLastRow() >= 2) gov = g.getRange(2, 1, g.getLastRow() - 1, GOV_KEYS.length).getDisplayValues()
+    .filter(r => String(r[1]).trim()).map(r => { const o = {}; GOV_KEYS.forEach((k, i) => o[k] = r[i]); return o; });
+  const url = ss_().getUrl();
+  return { rows: rows, gov: gov, piUrl: url + '#gid=' + sh.getSheetId(), govUrl: url + '#gid=' + g.getSheetId(),
+           updated: props_().getProperty('PI_EDITED') || '' };
+}
+const GOV_TAB = 'Gov_Funds';
+const GOV_HEAD = ['Country', 'Programme', 'Field', 'Budget (approx)', 'In ₹ (approx)', 'Period', 'Ends', 'Remaining',
+                  'Main institutions / hubs', 'Jobs advertised?', 'Jobs page', 'Official link'];
+const GOV_KEYS = ['country', 'programme', 'field', 'amount', 'inr', 'period', 'ends', 'remaining', 'institutions', 'jobs', 'jobs_link', 'link'];
+function govSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(GOV_TAB);
+  if (!sh) { sh = ss.insertSheet(GOV_TAB);
+    sh.getRange(1, 1, 1, GOV_HEAD.length).setValues([GOV_HEAD]).setFontWeight('bold').setBackground('#e8eefc');
+    sh.setFrozenRows(1); sh.setColumnWidth(2, 260); sh.setColumnWidth(9, 320);
+    sh.getRange('C2:C500').setDataValidation(SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Magnetism & Spintronics', 'AI / ML', 'Quantum', 'Several'], true).build());
+    sh.getRange('H2').setNote('Remaining is worked out by the page from "Ends" (e.g. 2031 or 2031-03) if you leave it empty.'); }
+  return sh;
+}
+function writeGov_(rows) {
+  const sh = govSheet_();
+  const last = sh.getLastRow();
+  if (last >= 2) sh.getRange(2, 1, last - 1, GOV_HEAD.length).clearContent();
+  const safe = v => { v = String(v == null ? '' : v).slice(0, 600); return /^[=+\-@]/.test(v) ? "'" + v : v; };
+  const vals = rows.slice(0, 60).map(o => GOV_KEYS.map(k => safe(o[k])));
+  if (vals.length) sh.getRange(2, 1, vals.length, GOV_HEAD.length).setValues(vals);
+  return vals.length;
+}
+// run once: creates the PI_Grants and Gov_Funds tabs (you fill them in) and the 1st-of-month email reminder
+function setupGrants() {
+  piSheet_(); govSheet_();
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'monthlyGrantReminder').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('monthlyGrantReminder').timeBased().onMonthDay(1).atHour(8).inTimezone('Asia/Kolkata').create();
+  Logger.log('PI_Grants and Gov_Funds ready; reminder set for 8 AM on the 1st of every month');
+}
+function monthlyGrantReminder() {
+  const p = readPis_(), me = Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail(me, '🔔 Monthly update: PI grants & government funding',
+    'It is the 1st of the month: time to update your lists.\n\n' +
+    'PI_Grants (' + p.rows.length + ' PIs): ' + p.piUrl + '\n' +
+    'Gov_Funds (' + p.gov.length + ' programmes): ' + p.govUrl + '\n\n' +
+    'Add new PIs, update amounts / end dates, and remove grants that have ended. The Morning Brief shows them on the Science & career page.');
+}
+// replaces the list; keeps what you typed in "My note" for PIs that are still on it
+function writePis_(rows, date, gov) {
+  const sh = piSheet_(), last = sh.getLastRow(), notes = {};
+  if (last >= 2) sh.getRange(2, 1, last - 1, PI_HEAD.length).getDisplayValues().forEach(r => { if (r[14]) notes[String(r[1]).toLowerCase()] = r[14]; });
+  if (last >= 2) sh.getRange(2, 1, last - 1, PI_HEAD.length).clearContent();
+  const safe = v => { v = String(v == null ? '' : v).slice(0, 500); return /^[=+\-@]/.test(v) ? "'" + v : v; };
+  const vals = rows.slice(0, 80).map(o => PI_KEYS.map(k => safe(o[k])).concat([notes[String(o.pi || '').toLowerCase()] || '']));
+  if (vals.length) sh.getRange(2, 1, vals.length, PI_HEAD.length).setValues(vals);
+  props_().setProperty('PI_SCANNED', String(date).slice(0, 10));
+  const g = gov && gov.length ? writeGov_(gov) : 0;
+  return { ok: true, written: vals.length, gov: g };
 }
 
 /* ---------------- daily writing ritual (Google Doc tab) ---------------- */
