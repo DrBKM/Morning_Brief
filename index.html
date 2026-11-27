@@ -928,6 +928,7 @@ async function loadJournal(){
     HROWS=d.habits||[]; loadHabDay(); drawHabits();
     SROWS=d.sugar||[]; drawSugar();
     PROWS=d.projects||[]; fillProjects(); drawProjects();
+    if(d.pis){ PIS=d.pis; drawPis(); drawGov(); }
     drawRitual(d.ritual, d.ritualError);
   }catch(e){ tb.innerHTML='<tr><td colspan="6" class="empty">Could not reach the Google Sheet ('+esc(e.message)+').</td></tr>'; }
 }
