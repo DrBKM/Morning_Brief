@@ -239,6 +239,12 @@
   .jform input,.jform select,.jform textarea{background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:7px 9px; border-radius:4px; font-size:13px; font-family:inherit;}
   .jform textarea{grid-column:1/-1; min-height:76px;}
   .jform .btnsm{justify-self:start;}
+  .wr-head{display:flex; justify-content:space-between; align-items:baseline; margin:4px 0 8px;} .wr-head b{font-size:16px; color:var(--amber);} .wr-head a{color:var(--amber); font-size:13px;}
+  #wrText{width:100%; min-height:170px; background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:5px; padding:12px; font:inherit; font-size:15.5px; line-height:1.6; resize:vertical;}
+  .wr-bar{display:flex; align-items:center; gap:12px; margin:8px 0 10px;} .wr-bar .pj-bar{flex:1;} .wr-bar span{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); white-space:nowrap;}
+  .wr-list{margin-top:14px;} .wr-list details{border-top:1px solid var(--border); padding:9px 2px;}
+  .wr-list summary{cursor:pointer; font-weight:600;} .wr-list summary small{color:var(--muted); font-weight:400; margin-left:8px;}
+  .wr-list .wr-t{white-space:pre-wrap; color:var(--muted); font-size:14.5px; line-height:1.6; margin-top:6px;}
   .jform.pj{grid-template-columns:2fr 1fr 1fr 1.4fr 1fr;} .jform.pj #pjNote{grid-column:1/-1;}
   @media (max-width:760px){ .jform.pj{grid-template-columns:1fr 1fr;} .jform.pj #pjName,.jform.pj #pjNew,.jform.pj .pj-range{grid-column:1/-1;} }
   .pj-range{display:flex; align-items:center; gap:8px;} .pj-range input{flex:1; accent-color:var(--amber);} .pj-range b{font-family:'IBM Plex Mono',monospace; min-width:42px;}
@@ -304,7 +310,7 @@
     <div class="hero-sub"><span id="heroDate"></span> · market opens 9:15 AM IST</div>
     <nav class="hero-chips">
       <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-oc">Option chain</a><a href="#sec-fii">FII / DII</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
-      <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-tasks">Tasks</a><a href="#sec-mail">Emails</a>
+      <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-write">Writing</a><a href="#sec-proj">Projects</a><a href="#sec-mail">Emails</a>
     </nav>
     <nav class="hero-chips quick" aria-label="Quick links">
       <span>Tools</span>
@@ -505,15 +511,19 @@
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
-  <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, projects, events, emails, daily habits and health log</p></div>
-  <section class="card span6" id="sec-tasks">
-    <h2>13 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
-    <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
-    <p class="empty" id="taskLock">Unlock with your passphrase (bar at the top).</p>
-    <ul class="feed" id="taskList"></ul>
+  <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Daily writing, events, projects, emails, daily habits and health log</p></div>
+  <section class="card span12" id="sec-write">
+    <h2>13 · Daily Writing — Evening Ritual <span class="tag manual" id="tagWrite">private · saved to Google Doc</span></h2>
+    <p class="sub">Write your lines for the day. They go into your <b>Evening_Rituals</b> doc under today's date, in the same style as your entries.
+      Saving again the same day adds to today's entry. 200 words ticks <b>W</b> in Daily Habits.</p>
+    <div class="wr-head"><b id="wrDay"></b><a id="wrOpen" href="#" target="_blank" rel="noopener" hidden>Open the doc ↗</a></div>
+    <textarea id="wrText" placeholder="আজকের দিনটা কেমন গেল… / How did today go?"></textarea>
+    <div class="wr-bar"><div class="pj-bar"><i id="wrFill" style="width:0%;background:var(--amber)"></i></div><span id="wrCount">0 / 200 words</span></div>
+    <button class="btnsm" id="wrSave" onclick="saveRitual()">Save to Google Doc</button><span id="wrMsg" class="sub"></span>
+    <div class="wr-list" id="wrList"><p class="empty">Unlock with your passphrase (bar at the top).</p></div>
   </section>
 
-  <section class="card span6">
+  <section class="card span12">
     <h2>14 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
     <p class="sub">Worthwhile events in the next 7 days.</p>
     <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
@@ -785,13 +795,8 @@ async function decryptPrivate(blob, pass){
 }
 function renderPrivate(p){
   document.getElementById('lockbox').style.display='none';
-  const tl=document.getElementById('taskLock'); if(tl) tl.remove();
   renderWatch(p.watch||[]);
   JR=p.journal||{}; loadJournal();
-  document.getElementById('tagTasks').textContent = 'unlocked'+(p.sheet?' · '+p.sheet:'');
-  const cls={overdue:'hot',today:'amb',continuing:'go'};
-  fill('taskList', p.tasks, t=>`<li><span class="pill ${cls[t.status]||''}">${esc(t.status)}</span><span class="t">${esc(t.task)}</span>
-    <div class="m">${t.due?'due '+esc(t.due):''}${t.note?(t.due?' · ':'')+esc(t.note):''}</div></li>`, 'Nothing pending today. 🎉');
   fill('mailList', p.emails, m=>`<li><span class="pill amb">${esc(m.action)}</span>${link(m.link, m.subject||'(no subject)')}
     <div class="m">${esc(m.from)}</div><div class="w">${esc(m.why)}</div></li>`, 'No important emails in the last 24 hours.');
 }
@@ -886,6 +891,7 @@ async function loadJournal(){
     HROWS=d.habits||[]; loadHabDay(); drawHabits();
     SROWS=d.sugar||[]; drawSugar();
     PROWS=d.projects||[]; fillProjects(); drawProjects();
+    drawRitual(d.ritual, d.ritualError);
   }catch(e){ tb.innerHTML='<tr><td colspan="6" class="empty">Could not reach the Google Sheet ('+esc(e.message)+').</td></tr>'; }
 }
 function drawJournal(){
@@ -1043,6 +1049,39 @@ function drawSugar(){
   document.querySelector('#sgTbl tbody').innerHTML=SROWS.slice(-15).reverse().map(r=>`<tr><td class="num">${esc(r.date)}</td><td class="num">${esc(r.time)}</td><td>${esc(r.type)}</td><td class="num"><b>${esc(r.value)}</b></td><td>${esc(r.note)}</td></tr>`).join('')
     ||'<tr><td colspan="5" class="empty">No readings yet.</td></tr>';
 }
+// ---------- daily writing ritual (Google Doc) ----------
+let RIT=null;
+const wcount=t=>t.split(/\s+/).filter(Boolean).length;
+function wrMeter(){
+  const today=RIT&&RIT.entries.find(e=>e.label===RIT.today), base=today?today.words:0, n=base+wcount(document.getElementById('wrText').value);
+  document.getElementById('wrFill').style.cssText=`width:${Math.min(100,n/2)}%;background:${n>=200?'var(--green)':'var(--amber)'}`;
+  document.getElementById('wrCount').textContent=`${n} / 200 words`+(base?` (${base} already saved today)`:'');
+}
+document.getElementById('wrText').addEventListener('input',()=>{ wrMeter(); try{ localStorage.setItem('wrDraft',document.getElementById('wrText').value); }catch(e){} });
+try{ const dr=localStorage.getItem('wrDraft'); if(dr) document.getElementById('wrText').value=dr; }catch(e){}
+function drawRitual(r,err){
+  const L=document.getElementById('wrList');
+  if(!r){ L.innerHTML=`<p class="empty">${err?'Could not open the doc: '+esc(err):'Not connected yet: paste your doc link in the Apps Script (RITUAL_DOC) and deploy a new version.'}</p>`; return; }
+  RIT=r; document.getElementById('wrDay').textContent=r.today;
+  const a=document.getElementById('wrOpen'); a.href=r.url; a.hidden=false;
+  document.getElementById('tagWrite').textContent='private · '+r.tab;
+  L.innerHTML=r.entries.map((e,i)=>`<details${i===0?' open':''}><summary>${esc(e.label)}<small>${e.words} words</small></summary><div class="wr-t">${esc(e.text)}</div></details>`).join('')||'<p class="empty">No dated entries found yet.</p>';
+  wrMeter();
+}
+async function saveRitual(){
+  const t=document.getElementById('wrText'), msg=document.getElementById('wrMsg'), b=document.getElementById('wrSave');
+  if(!JR.url){ msg.textContent='Unlock first.'; return; }
+  if(!t.value.trim()){ msg.textContent='Write something first.'; return; }
+  b.disabled=true; msg.textContent='Saving…';
+  try{
+    const r=await jcall({action:'ritual',text:t.value}); if(!r.ok) throw new Error(r.error);
+    t.value=''; try{ localStorage.removeItem('wrDraft'); }catch(e){}
+    msg.textContent=`Saved ✓ · ${r.words} words today`+(r.ticked?' · W ticked in Daily Habits':'');
+    await loadJournal();
+  }catch(e){ msg.textContent='Not saved: '+e.message+' (your text is kept here)'; }
+  b.disabled=false;
+}
+
 // ---------- projects & small tasks ----------
 let PROWS=[], PJF='active';
 const pjDone=r=>r.status==='Completed'||r.status==='Failed-Rejected';

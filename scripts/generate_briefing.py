@@ -286,24 +286,19 @@ deadlines, salaries or dates: write "see advert" if unknown.
 
 def private_digest(p):
     tasks, emails = p.get("tasks") or {}, p.get("emails") or []
-    task_block = json.dumps(tasks, ensure_ascii=False)[:30000]
     mail_block = "\n".join(f"[{i}] {m.get('date','')} | {m.get('from','')} | {m.get('subject','')} :: {m.get('snippet','')}"
                            for i, m in enumerate(emails)) or "(none)"
+    if not emails:                                          # nothing to sort: skip the Claude call
+        return {"tasks": [], "emails": [], "sheet": tasks.get("sheet", "")}
     prompt = f"""Today is {TODAY}. You are a personal assistant preparing a morning reminder.
 
-1) TASKS. This is a tab from the user's task Google Sheet (header + rows, JSON):
-{task_block}
-List the tasks that are for today, overdue, or still in progress / not done (continued from earlier days).
-Skip finished ones. Most urgent first, at most 12.
-
-2) EMAILS from the last 24 hours marked important or starred:
+EMAILS from the last 24 hours marked important or starred:
 {mail_block}
 Pick those that need the user's attention or a reply (at most 8), most important first. Ignore newsletters
 and automated notices unless they contain a deadline.
 
 {JSON_ONLY} Schema:
-{{"tasks": [{{"task": "...", "status": "today" | "overdue" | "continuing", "due": "date or ''", "note": "short"}}],
-  "emails": [{{"i": <email number>, "why": "one line", "action": "reply" | "read" | "note deadline" | "none"}}]}}"""
+{{"emails": [{{"i": <email number>, "why": "one line", "action": "reply" | "read" | "note deadline" | "none"}}]}}"""
     text, _ = claude(prompt, MODEL, 1800)
     d = parse_json(text)
     mails = []
@@ -313,7 +308,7 @@ and automated notices unless they contain a deadline.
             m = emails[i]
             mails.append({"from": m.get("from", ""), "subject": m.get("subject", ""), "date": m.get("date", ""),
                           "link": m.get("link", ""), "why": e.get("why", ""), "action": e.get("action", "")})
-    return {"tasks": d.get("tasks", []), "emails": mails, "sheet": tasks.get("sheet", "")}
+    return {"tasks": [], "emails": mails, "sheet": tasks.get("sheet", "")}
 
 
 def encrypt(obj, passphrase):

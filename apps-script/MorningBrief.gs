@@ -19,6 +19,10 @@ const WATCH_TAB = 'FFA_TIE';         // stock watchlist tab
 const JOURNAL_TAB = 'Trade_Journal'; // created automatically
 const MAIL_QUERY = 'in:inbox newer_than:1d (is:important OR is:starred) -category:promotions -category:social';
 const HABIT_TAB = 'Habits';         // daily WRYTINGS ticks (created automatically)
+// Daily writing ritual: paste the link (or ID) of your Evening_Rituals Google Doc between the quotes
+const RITUAL_DOC = '';
+const RITUAL_TAB = 'Evening_Ritual';   // the doc tab whose title contains this text (yours: Dailly_Evening_Ritual…)
+const RITUAL_NEWEST_FIRST = true;      // new days go above the latest dated entry (false = at the end of the tab)
 const SUGAR_TAB = 'Diabetes';        // blood-sugar log (created automatically)
 const HABITS = [['W', 'Writing 200 words on my day (30 min)'], ['R', 'Reading a research article (1 hr)'],
   ['Y', 'Revising Physics (1 hr)'], ['T', 'Trading plan and execution (1 hr)'], ['I', 'Instruments revision (15 min)'],
@@ -63,6 +67,7 @@ function doGet(e) {
     try { out.habits = readHabits_(400); } catch (err) { out.habitError = String(err); }
     try { out.sugar = readSugar_(400); } catch (err) { out.sugarError = String(err); }
     try { out.projects = readProjects_(); } catch (err) { out.projectError = String(err); }
+    try { out.ritual = readRitual_(10); } catch (err) { out.ritualError = String(err.message || err); }
     return json_(out);
   }
   return json_({ ok: false, error: 'unauthorised' });
@@ -82,6 +87,7 @@ function doPost(e) {
     if (b.action === 'habit') return json_(saveHabit_(b));
     if (b.action === 'sugar') return json_(addSugar_(b));
     if (b.action === 'project') return json_(updateProject_(b));
+    if (b.action === 'ritual') return json_(writeRitual_(b));
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -358,6 +364,89 @@ function addSugar_(b) {
   sugarSheet_().appendRow([new Date(y, m - 1, d), String(b.time || '').slice(0, 5), type, v, String(b.note || '').slice(0, 200)]);
   return { ok: true };
 }
+
+/* ---------------- daily writing ritual (Google Doc tab) ---------------- */
+const R_DATE = /^\s*(\d{1,2})\s*([A-Za-z]{3})[A-Za-z]*\s*,?\s*(\d{4})\s*(\([A-Za-z]+\))?\s*:?/;
+function ritualBody_() {
+  if (!RITUAL_DOC) throw new Error('RITUAL_DOC is empty: paste your Evening_Rituals doc link at the top of the script');
+  const id = (RITUAL_DOC.match(/[-\w]{25,}/) || [RITUAL_DOC])[0];
+  const doc = DocumentApp.openById(id);
+  const all = [], walk = tabs => tabs.forEach(t => { all.push(t); walk(t.getChildTabs()); });
+  walk(doc.getTabs());
+  const tab = all.filter(t => t.getTitle().toLowerCase().indexOf(RITUAL_TAB.toLowerCase()) >= 0)[0];
+  if (!tab) throw new Error('No tab with "' + RITUAL_TAB + '" in its name');
+  return { doc: doc, body: tab.asDocumentTab().getBody(), title: tab.getTitle() };
+}
+function ritualLabel_(d) {
+  const tz = 'Asia/Kolkata';
+  return Utilities.formatDate(d, tz, 'ddMMMyyyy') + '(' + Utilities.formatDate(d, tz, 'EEEE') + ')';
+}
+// entries = a dated line ("25Nov2026(Wednesday): ...") and the lines under it
+function ritualEntries_(body) {
+  const out = []; let cur = null;
+  for (let i = 0; i < body.getNumChildren(); i++) {
+    const el = body.getChild(i);
+    const t = paraText_(el); if (t === null) continue;
+    const m = t.match(R_DATE);
+    if (m) {
+      cur = { label: t.slice(0, m[0].length).replace(/:\s*$/, '').trim(), key: (m[1].length < 2 ? '0' : '') + m[1] + m[2].toLowerCase() + m[3],
+              start: i, end: i, lines: [] };
+      const rest = t.slice(m[0].length).trim(); if (rest) cur.lines.push(rest);
+      out.push(cur);
+    } else if (cur && t.trim()) { cur.end = i; cur.lines.push(t); }
+  }
+  return out;
+}
+function paraEl_(el) {
+  const T = DocumentApp.ElementType;
+  return el.getType() === T.PARAGRAPH ? el.asParagraph() : el.getType() === T.LIST_ITEM ? el.asListItem() : null;
+}
+function paraText_(el) { const p = paraEl_(el); return p ? p.getText() : null; }
+function readRitual_(n) {
+  const r = ritualBody_(), e = ritualEntries_(r.body);
+  const keyOf = x => { const d = new Date(x.key.replace(/^(\d\d)([a-z]{3})(\d{4})$/, '$1 $2 $3')); return isNaN(d) ? 0 : d.getTime(); };
+  const list = e.slice().sort((a, b) => keyOf(b) - keyOf(a)).slice(0, n)
+    .map(x => ({ label: x.label, text: x.lines.join('\n'), words: x.lines.join(' ').split(/\s+/).filter(Boolean).length }));
+  return { tab: r.title, url: r.doc.getUrl(), today: ritualLabel_(new Date()), entries: list };
+}
+function writeRitual_(b) {
+  const text = String(b.text || '').replace(/\r/g, '').trim().slice(0, 20000);
+  if (!text) return { ok: false, error: 'nothing to save' };
+  const r = ritualBody_(), body = r.body, now = new Date(), label = ritualLabel_(now);
+  const key = Utilities.formatDate(now, 'Asia/Kolkata', 'ddMMMyyyy').toLowerCase();
+  const entries = ritualEntries_(body), today = entries.filter(x => x.key === key)[0];
+  const ref = entries.length ? paraEl_(body.getChild(entries[0].start)).editAsText() : null;
+  const font = (ref && ref.getFontFamily(0)) || 'Calibri', size = (ref && ref.getFontSize(0)) || 15;
+  const ins = (i, t) => i >= body.getNumChildren() ? body.appendParagraph(t) : body.insertParagraph(i, t);
+  const style = p => { p.setHeading(DocumentApp.ParagraphHeading.NORMAL);
+    p.editAsText().setFontFamily(font).setFontSize(size).setBold(false); return p; };
+  const lines = text.split('\n').map(x => x.trim()).filter(Boolean);
+  let at;
+  if (today) at = today.end + 1;                                          // add to today's entry
+  else {
+    at = RITUAL_NEWEST_FIRST && entries.length ? Math.min.apply(null, entries.map(x => x.start)) : body.getNumChildren();
+    const h = style(ins(at, label + ':'));
+    h.editAsText().setBold(0, label.length - 1, true); at++;
+  }
+  lines.forEach(l => { style(ins(at++, l)); });
+  if (!today && at < body.getNumChildren()) style(ins(at, ''));   // blank line between days
+  r.doc.saveAndClose();
+  const words = (today ? today.lines.join(' ') + ' ' : '') + text;
+  const n = words.split(/\s+/).filter(Boolean).length;
+  if (n >= 200) { try { tickHabit_(Utilities.formatDate(now, 'Asia/Kolkata', 'yyyy-MM-dd'), 0); } catch (e) {} }
+  return { ok: true, words: n, ticked: n >= 200 };
+}
+// sets one habit mark (0 = W) to ✓ for a day, leaving the others as they are
+function tickHabit_(date, k) {
+  const sh = habitSheet_(), last = sh.getLastRow();
+  let row = 0;
+  if (last >= 2) { const d = sh.getRange(2, 1, last - 1, 1).getDisplayValues();
+    for (let i = 0; i < d.length; i++) if (d[i][0] === date) { row = i + 2; break; } }
+  if (!row) { row = Math.max(2, last + 1); const [y, m, dd] = date.split('-').map(Number); sh.getRange(row, 1).setValue(new Date(y, m - 1, dd)); }
+  sh.getRange(row, 2 + k).setValue('✓');
+}
+// run once after pasting the doc link: asks for Google Docs permission and checks the tab is found
+function testRitual() { Logger.log(JSON.stringify(readRitual_(3)).slice(0, 3000)); }
 
 /* ---------------- projects & small tasks (with progress bars) ---------------- */
 const PROJ_TAB = 'Projects', PLOG_TAB = 'Project_Log';
