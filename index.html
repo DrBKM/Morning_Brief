@@ -239,6 +239,24 @@
   .jform input,.jform select,.jform textarea{background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:7px 9px; border-radius:4px; font-size:13px; font-family:inherit;}
   .jform textarea{grid-column:1/-1; min-height:76px;}
   .jform .btnsm{justify-self:start;}
+  .jform.pj{grid-template-columns:2fr 1fr 1fr 1.4fr 1fr;} .jform.pj #pjNote{grid-column:1/-1;}
+  @media (max-width:760px){ .jform.pj{grid-template-columns:1fr 1fr;} .jform.pj #pjName,.jform.pj #pjNew,.jform.pj .pj-range{grid-column:1/-1;} }
+  .pj-range{display:flex; align-items:center; gap:8px;} .pj-range input{flex:1; accent-color:var(--amber);} .pj-range b{font-family:'IBM Plex Mono',monospace; min-width:42px;}
+  .pj-sum{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+  .pj-sum div{background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:6px 12px; font-size:12px; color:var(--muted);}
+  .pj-sum b{display:block; font-size:18px; color:var(--ink); font-family:'IBM Plex Mono',monospace;}
+  .pj-list{margin-top:10px;}
+  .pj-row{display:grid; grid-template-columns:minmax(0,2.2fr) 120px minmax(0,1.6fr) 110px minmax(0,2fr); gap:12px; align-items:center; padding:10px 6px; border-bottom:1px solid var(--border); cursor:pointer;}
+  .pj-row:hover{background:var(--panel2);}
+  .pj-row .nm{font-weight:600;} .pj-row .nm small{display:block; font-weight:400; color:var(--muted); font-size:11.5px;}
+  .pj-st{display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap;}
+  .pj-st.s-Completed{background:#1e6b3a; color:#fff;} .pj-st.s-In{background:rgba(62,209,140,.18); color:var(--green);}
+  .pj-st.s-Failed-Rejected{background:#b3261e; color:#fff;} .pj-st.s-On{background:rgba(232,163,61,.2); color:var(--amber);} .pj-st.s-Not{background:rgba(255,255,255,.08); color:var(--muted);}
+  .pj-bar{height:9px; background:rgba(255,255,255,.08); border-radius:5px; overflow:hidden;} .pj-bar i{display:block; height:100%; border-radius:5px;}
+  .pj-pct{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); margin-top:3px;}
+  .pj-dt{font-size:12px; color:var(--muted);} .pj-dt .late{color:var(--red); font-weight:700;}
+  .pj-nt{font-size:13px; color:var(--muted);} .pj-nt a{color:var(--amber);}
+  @media (max-width:760px){ .pj-row{grid-template-columns:1fr auto; gap:6px 10px;} .pj-row .pj-pb{grid-column:1/-1;} .pj-row .pj-dt{grid-column:1;} .pj-row .pj-nt{grid-column:1/-1;} }
   .tcheck{grid-column:1/-1; border:1px solid var(--border); border-radius:6px; padding:10px 12px; background:var(--panel2);}
   .tq{font-weight:700; font-size:15px; color:var(--amber); margin-bottom:8px;} .tq small{display:block; font-weight:600; font-style:italic; color:var(--muted); font-size:12.5px;}
   .titems{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;} @media (max-width:760px){ .titems{grid-template-columns:1fr;} }
@@ -487,7 +505,7 @@
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
-  <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, events, emails, daily habits and health log</p></div>
+  <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, projects, events, emails, daily habits and health log</p></div>
   <section class="card span6" id="sec-tasks">
     <h2>13 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
     <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
@@ -501,15 +519,33 @@
     <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
+  <section class="card span12" id="sec-proj">
+    <h2>15 · Projects &amp; Small Tasks <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <p class="sub">From the <b>Projects</b> tab. Give a quick update each day here, or change Status / Progress % in the sheet. Every update is kept in <b>Project_Log</b>.</p>
+    <div class="pj-sum" id="pjSum"></div>
+    <div class="jform pj">
+      <select id="pjName"></select>
+      <input id="pjNew" placeholder="New project or task name" maxlength="120" hidden>
+      <select id="pjType"><option>Project</option><option>Small task</option></select>
+      <select id="pjStatus"><option>Not started</option><option selected>In progress</option><option>On hold</option><option>Completed</option><option>Failed-Rejected</option></select>
+      <div class="pj-range"><input type="range" id="pjProg" min="0" max="100" step="5" value="0"><b id="pjProgV">0%</b></div>
+      <input type="date" id="pjDue" title="Due date (optional)">
+      <input id="pjNote" placeholder="Today's update (what you did / next step)" maxlength="500">
+      <button class="btnsm" id="pjSave" onclick="saveProject()">Save update</button><span id="pjMsg" class="sub"></span>
+    </div>
+    <div class="jobfilter" id="pjFilter"><button class="on" data-f="active">Active</button><button data-f="Project">Projects</button><button data-f="Small task">Small tasks</button><button data-f="Completed">Completed</button><button data-f="Failed-Rejected">Failed / rejected</button><button data-f="all">All</button></div>
+    <div class="pj-list" id="pjList"><p class="empty">Unlock with your passphrase (bar at the top).</p></div>
+  </section>
+
   <section class="card span12" id="sec-mail">
-    <h2>15 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
+    <h2>16 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
     <p class="sub">Important or starred Gmail that may need you today. Unlocks with the passphrase bar at the top.</p>
     <ul class="feed" id="mailList"><li class="empty">Locked.</li></ul>
     <p class="sub" style="margin-top:10px;"><a href="#" onclick="lockAgain();return false;">Lock again / forget passphrase on this device</a></p>
   </section>
 
   <section class="card span12" id="sec-habits">
-    <h2>16 · Daily Habits — WRYTINGS <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>17 · Daily Habits — WRYTINGS <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">Tap once for ✓ done, twice for ✗ not done, three times to clear. Saved in the <b>Habits</b> tab, which also counts them for any period.</p>
     <div class="hab-today">
       <input type="date" id="habDate">
@@ -528,7 +564,7 @@
   </section>
 
   <section class="card span12" id="sec-sugar">
-    <h2>17 · Diabetes Log <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>18 · Diabetes Log <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">Add a reading here or type it straight into the <b>Diabetes</b> tab. Averages are worked out for you, here and in the sheet.</p>
     <div class="jform sugar">
       <input type="date" id="sgDate"><input type="time" id="sgTime">
@@ -849,6 +885,7 @@ async function loadJournal(){
     JROWS=d.journal||[]; drawJournal();
     HROWS=d.habits||[]; loadHabDay(); drawHabits();
     SROWS=d.sugar||[]; drawSugar();
+    PROWS=d.projects||[]; fillProjects(); drawProjects();
   }catch(e){ tb.innerHTML='<tr><td colspan="6" class="empty">Could not reach the Google Sheet ('+esc(e.message)+').</td></tr>'; }
 }
 function drawJournal(){
@@ -1006,6 +1043,67 @@ function drawSugar(){
   document.querySelector('#sgTbl tbody').innerHTML=SROWS.slice(-15).reverse().map(r=>`<tr><td class="num">${esc(r.date)}</td><td class="num">${esc(r.time)}</td><td>${esc(r.type)}</td><td class="num"><b>${esc(r.value)}</b></td><td>${esc(r.note)}</td></tr>`).join('')
     ||'<tr><td colspan="5" class="empty">No readings yet.</td></tr>';
 }
+// ---------- projects & small tasks ----------
+let PROWS=[], PJF='active';
+const pjDone=r=>r.status==='Completed'||r.status==='Failed-Rejected';
+function pjPct(r){ return r.status==='Completed'?100:(r.progress===''||r.progress==null?null:Math.max(0,Math.min(100,+r.progress))); }
+function fillProjects(){
+  const sel=document.getElementById('pjName'), keep=sel.value;
+  const act=PROWS.filter(r=>!pjDone(r)), rest=PROWS.filter(pjDone);
+  sel.innerHTML='<option value="">Choose a project / task…</option>'+act.map(r=>`<option value="${r.row}">${esc(r.name)}</option>`).join('')+
+    (rest.length?'<optgroup label="Finished">'+rest.map(r=>`<option value="${r.row}">${esc(r.name)}</option>`).join('')+'</optgroup>':'')+'<option value="new">+ New project or task</option>';
+  if(keep) sel.value=keep;
+}
+function pickProject(){
+  const v=document.getElementById('pjName').value, nw=document.getElementById('pjNew');
+  nw.hidden=v!=='new'; const r=PROWS.find(x=>String(x.row)===v);
+  if(r){ document.getElementById('pjType').value=r.type==='Small task'?'Small task':'Project';
+    document.getElementById('pjStatus').value=r.status||'In progress'; setProg(pjPct(r)||0); document.getElementById('pjNote').value=''; }
+  if(v==='new'){ setProg(0); document.getElementById('pjStatus').value='In progress'; nw.focus(); }
+}
+function setProg(v){ document.getElementById('pjProg').value=v; document.getElementById('pjProgV').textContent=v+'%'; }
+document.getElementById('pjName').addEventListener('change',pickProject);
+document.getElementById('pjProg').addEventListener('input',e=>setProg(e.target.value));
+document.getElementById('pjStatus').addEventListener('change',e=>{ if(e.target.value==='Completed') setProg(100); });
+document.getElementById('pjFilter').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; PJF=b.dataset.f;
+  document.querySelectorAll('#pjFilter button').forEach(x=>x.classList.toggle('on',x===b)); drawProjects(); });
+document.getElementById('pjList').addEventListener('click',e=>{ if(e.target.closest('a')) return; const row=e.target.closest('.pj-row'); if(!row) return;
+  document.getElementById('pjName').value=row.dataset.row; pickProject(); document.getElementById('pjNote').focus(); });
+function drawProjects(){
+  const today=isoToday(), toIso=s=>s||'';
+  const cnt=st=>PROWS.filter(r=>r.status===st).length, ip=PROWS.filter(r=>r.status==='In progress'&&pjPct(r)!=null);
+  const late=PROWS.filter(r=>!pjDone(r)&&r.dueIso&&r.dueIso<today).length;
+  document.getElementById('pjSum').innerHTML=[['In progress',cnt('In progress')],['On hold',cnt('On hold')],['Not started',cnt('Not started')],['Completed',cnt('Completed')],
+    ['Failed / rejected',cnt('Failed-Rejected')],['Avg progress',ip.length?Math.round(ip.reduce((a,r)=>a+pjPct(r),0)/ip.length)+'%':'—'],['Overdue',late]]
+    .map(([a,b])=>`<div><b${a==='Overdue'&&b?' style="color:var(--red)"':''}>${b}</b>${a}</div>`).join('');
+  let L=PROWS.filter(r=>PJF==='all'?true:PJF==='active'?!pjDone(r):PJF==='Project'||PJF==='Small task'?(r.type||'Project')===PJF&&!pjDone(r):r.status===PJF);
+  L=L.slice().sort((a,b)=>(pjDone(a)-pjDone(b))||String(b.updated||'').localeCompare(String(a.updated||'')));
+  const lk=(t,u)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t||'open')}</a>`:esc(t);
+  document.getElementById('pjList').innerHTML=L.map(r=>{
+    const p=pjPct(r), col=r.status==='Completed'?'var(--green)':r.status==='Failed-Rejected'?'var(--red)':'var(--amber)';
+    const isLate=!pjDone(r)&&r.dueIso&&r.dueIso<today;
+    return `<div class="pj-row" data-row="${r.row}"><div class="nm">${esc(r.name)}<small>${esc(r.type||'Project')}${r.files?' · '+lk(r.files,r.filesUrl):''}</small></div>
+      <div><span class="pj-st s-${esc(String(r.status||'Not started').split(' ')[0])}">${esc(r.status||'Not started')}</span></div>
+      <div class="pj-pb"><div class="pj-bar"><i style="width:${p||0}%;background:${col}"></i></div><div class="pj-pct">${p==null?'progress not set':p+'%'}</div></div>
+      <div class="pj-dt">${r.on?esc(r.on):''}${r.due?`<br><span class="${isLate?'late':''}">due ${esc(r.due)}</span>`:''}</div>
+      <div class="pj-nt">${lk(r.notes,r.notesUrl)}</div></div>`;
+  }).join('')||'<p class="empty">Nothing here.</p>';
+}
+async function saveProject(){
+  const v=id=>document.getElementById(id).value.trim(), msg=document.getElementById('pjMsg');
+  if(!JR.url){ msg.textContent='Unlock first.'; return; }
+  const sel=v('pjName'), isNew=sel==='new', r=PROWS.find(x=>String(x.row)===sel);
+  const name=isNew?v('pjNew'):(r&&r.name); if(!name){ msg.textContent=isNew?'Type the new name.':'Choose a project.'; return; }
+  const b=document.getElementById('pjSave'); b.disabled=true; msg.textContent='Saving…';
+  try{
+    const res=await jcall({action:'project',row:isNew?0:sel,name,type:v('pjType'),status:v('pjStatus'),progress:v('pjProg'),due:v('pjDue'),note:v('pjNote')});
+    if(!res.ok) throw new Error(res.error);
+    msg.textContent='Saved ✓'; document.getElementById('pjNote').value=''; document.getElementById('pjNew').value=''; document.getElementById('pjDue').value='';
+    await loadJournal(); document.getElementById('pjName').value=String(res.row); pickProject();
+  }catch(e){ msg.textContent='Not saved: '+e.message; }
+  b.disabled=false;
+}
+
 document.getElementById('habDate').value=isoToday(); document.getElementById('sgDate').value=isoToday();
 habButtons();
 

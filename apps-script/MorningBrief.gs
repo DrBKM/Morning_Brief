@@ -62,6 +62,7 @@ function doGet(e) {
     const out = { ok: true, journal: readJournal_(80) };
     try { out.habits = readHabits_(400); } catch (err) { out.habitError = String(err); }
     try { out.sugar = readSugar_(400); } catch (err) { out.sugarError = String(err); }
+    try { out.projects = readProjects_(); } catch (err) { out.projectError = String(err); }
     return json_(out);
   }
   return json_({ ok: false, error: 'unauthorised' });
@@ -80,6 +81,7 @@ function doPost(e) {
     if (b.action === 'result') return json_(setResult_(b));
     if (b.action === 'habit') return json_(saveHabit_(b));
     if (b.action === 'sugar') return json_(addSugar_(b));
+    if (b.action === 'project') return json_(updateProject_(b));
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -355,6 +357,130 @@ function addSugar_(b) {
   const type = SUGAR_TYPES.indexOf(b.type) >= 0 ? b.type : 'Random';
   sugarSheet_().appendRow([new Date(y, m - 1, d), String(b.time || '').slice(0, 5), type, v, String(b.note || '').slice(0, 200)]);
   return { ok: true };
+}
+
+/* ---------------- projects & small tasks (with progress bars) ---------------- */
+const PROJ_TAB = 'Projects', PLOG_TAB = 'Project_Log';
+const P_HEAD = ['Project / task', 'Type', 'Status', 'Progress %', 'Progress', 'Status on', 'Due date', 'Related files', 'Notes', 'Last update'];
+const P_STATUS = ['Not started', 'In progress', 'On hold', 'Completed', 'Failed-Rejected'];
+const P_TYPES = ['Project', 'Small task'];
+function projectSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(PROJ_TAB);
+  if (sh) return sh;
+  sh = ss.insertSheet(PROJ_TAB);
+  sh.getRange(1, 1, 1, P_HEAD.length).setValues([P_HEAD]).setFontWeight('bold').setBackground('#e8eefc');
+  sh.setFrozenRows(1);
+  sh.getRange('E1').setFormula('={"Progress";ARRAYFORMULA(IF(A2:A="",,IF(D2:D="","",REPT("█",ROUND(D2:D/10))&REPT("░",10-ROUND(D2:D/10))&"  "&D2:D&"%")))}');
+  sh.getRange('B2:B1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(P_TYPES, true).build());
+  sh.getRange('C2:C1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(P_STATUS, true).build());
+  sh.getRange('D2:D1000').setDataValidation(SpreadsheetApp.newDataValidation().requireNumberBetween(0, 100).setAllowInvalid(false).build());
+  sh.getRange('F2:G1000').setNumberFormat('dd mmm yyyy');
+  sh.getRange('E2:E1000').setFontFamily('Roboto Mono');
+  const col = (rg, f, bg, fc) => SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(f).setBackground(bg).setFontColor(fc).setRanges([sh.getRange(rg)]).build();
+  sh.setConditionalFormatRules([
+    col('C2:C1000', '=$C2="Completed"', '#1e6b3a', '#ffffff'), col('C2:C1000', '=$C2="In progress"', '#d4f5c9', '#1e6b3a'),
+    col('C2:C1000', '=$C2="Failed-Rejected"', '#b3261e', '#ffffff'), col('C2:C1000', '=$C2="On hold"', '#fff1c2', '#7a5b00'),
+    col('C2:C1000', '=$C2="Not started"', '#eceff1', '#455a64'),
+    col('E2:E1000', '=$C2="Completed"', '#ffffff', '#2e7d32'), col('E2:E1000', '=$C2="Failed-Rejected"', '#ffffff', '#c62828'),
+    col('E2:E1000', '=$D2<>""', '#ffffff', '#e69500'),
+    col('G2:G1000', '=AND($G2<>"",$G2<TODAY(),$C2<>"Completed",$C2<>"Failed-Rejected")', '#fde2e1', '#b3261e')]);
+  sh.setColumnWidth(1, 260); sh.setColumnWidth(5, 170); sh.setColumnWidth(8, 180); sh.setColumnWidth(9, 260);
+  // summary block
+  sh.getRange('L1:M1').setValues([['Summary', '']]).setFontWeight('bold').setBackground('#e8eefc');
+  const sum = [['Total', '=COUNTA(A2:A)']].concat(P_STATUS.map(st => [st, '=COUNTIF(C2:C,"' + st + '")']),
+    [['Average progress (in progress)', '=IFERROR(ROUND(AVERAGEIFS(D2:D,C2:C,"In progress"),0)&"%","–")'],
+     ['Overdue', '=COUNTIFS(G2:G,"<"&TODAY(),C2:C,"<>Completed",C2:C,"<>Failed-Rejected")'],
+     ['Updated in last 7 days', '=COUNTIF(J2:J,">="&TODAY()-7)']]);
+  sum.forEach((r, i) => { sh.getRange(2 + i, 12).setValue(r[0]); sh.getRange(2 + i, 13).setFormula(r[1]); });
+  sh.setColumnWidth(12, 210);
+  // starter rows from your old tracker (add links in "Related files" yourself)
+  const d = (y, m, dd) => new Date(y, m - 1, dd);
+  const seed = [
+    ['Daily Diabetes/Money care/Reversal', 'Project', 'In progress', '', '', d(2025, 6, 27), '', 'Food for Diabetes', 'Finance_BKM'],
+    ['Addiction Control', 'Project', 'In progress', '', '', d(2025, 12, 1), '', '', ''],
+    ['2-D Material Simu', 'Project', 'In progress', '', '', '', '', '', 'Codes are ready'],
+    ['Job Security: Neutron data analysis: Real time', 'Project', 'Completed', 100, '', d(2025, 6, 1), '', 'Update PPT file', 'Task Updates'],
+    ['My Strength my CV & Interview Preparation', 'Project', 'Completed', 100, '', d(2025, 3, 25), '', 'Personal_…', ''],
+    ['Writing Code Labview for CRP', 'Project', 'Completed', 100, '', d(2025, 2, 5), '', '', 'SHNO_11_07_2023_Onwards.pptx'],
+    ['CRP final report', 'Project', 'Completed', 100, '', '', '', '', 'Done All'],
+    ['Perovskite Dev NITP', 'Project', 'Completed', 100, '', d(2024, 11, 8), '', 'Dev Kumar…', 'Done all.'],
+    ['Travel Plans', 'Project', 'Completed', 100, '', '', '', 'Travel Plans', 'Bali trip done'],
+    ['2-D Materials for THz-X', 'Project', 'Failed-Rejected', '', '', d(2024, 10, 29), '', '', 'Sent to Piyush.'],
+    ['STFMR device Fabrication - X', 'Project', 'Failed-Rejected', '', '', d(2024, 10, 29), '', 'For men m…', '']];
+  seed.forEach(r => sh.appendRow(r.concat(['']).map((x, j) => j === 4 ? '' : x)));
+  sh.getRange(2, 5, seed.length, 1).clearContent();
+  return sh;
+}
+function plogSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(PLOG_TAB);
+  if (sh) return sh;
+  sh = ss.insertSheet(PLOG_TAB);
+  sh.getRange(1, 1, 1, 6).setValues([['Date', 'Time', 'Project / task', 'Status', 'Progress %', 'Update']]).setFontWeight('bold').setBackground('#e8eefc');
+  sh.setFrozenRows(1); sh.setColumnWidth(3, 260); sh.setColumnWidth(6, 360);
+  sh.getRange('A2:A5000').setNumberFormat('yyyy-mm-dd');
+  return sh;
+}
+function readProjects_() {
+  const sh = projectSheet_(), last = sh.getLastRow();
+  if (last < 2) return [];
+  const rg = sh.getRange(2, 1, last - 1, P_HEAD.length), v = rg.getDisplayValues(), rt = rg.getRichTextValues(), raw = rg.getValues();
+  const link = c => { try { const u = c.getLinkUrl() || (c.getRuns().map(x => x.getLinkUrl()).filter(Boolean)[0]); return u || ''; } catch (e) { return ''; } };
+  const out = [];
+  v.forEach((r, i) => { if (!String(r[0]).trim()) return;
+    out.push({ row: i + 2, name: r[0], type: r[1] || 'Project', status: r[2], progress: r[3], on: r[5], due: r[6],
+      dueIso: raw[i][6] instanceof Date ? Utilities.formatDate(raw[i][6], 'Asia/Kolkata', 'yyyy-MM-dd') : '', files: r[7], filesUrl: link(rt[i][7]), notes: r[8], notesUrl: link(rt[i][8]), updated: r[9] }); });
+  return out;
+}
+// one daily update (from the web page): sets status / progress / note and writes a line in Project_Log
+function updateProject_(b) {
+  const sh = projectSheet_(), tz = 'Asia/Kolkata', now = new Date();
+  const name = String(b.name || '').trim().slice(0, 120);
+  if (!name) return { ok: false, error: 'project name is required' };
+  const status = P_STATUS.indexOf(b.status) >= 0 ? b.status : 'In progress';
+  let prog = b.progress === '' || b.progress == null ? '' : Math.max(0, Math.min(100, Math.round(Number(b.progress))));
+  if (status === 'Completed') prog = 100;
+  const note = String(b.note || '').slice(0, 500), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const stamp = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm');
+  let row = Number(b.row) || 0;
+  if (row > 1 && String(sh.getRange(row, 1).getValue()).trim() !== name) row = 0;   // sheet changed: find by name
+  if (!row) { const names = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
+    for (let i = 1; i < names.length; i++) if (String(names[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; } }
+  if (!row) {
+    sh.appendRow([name, P_TYPES.indexOf(b.type) >= 0 ? b.type : 'Project', status, prog, '', today, b.due ? new Date(b.due + 'T00:00:00') : '', '', note, stamp]);
+    row = sh.getLastRow(); sh.getRange(row, 5).clearContent();
+  } else {
+    sh.getRange(row, 3, 1, 2).setValues([[status, prog]]);
+    sh.getRange(row, 6).setValue(today);
+    if (b.due) sh.getRange(row, 7).setValue(new Date(b.due + 'T00:00:00'));
+    if (P_TYPES.indexOf(b.type) >= 0) sh.getRange(row, 2).setValue(b.type);
+    if (note) sh.getRange(row, 9).setValue(note);
+    sh.getRange(row, 10).setValue(stamp);
+  }
+  plogSheet_().appendRow([today, Utilities.formatDate(now, tz, 'HH:mm'), name, status, prog, note]);
+  return { ok: true, row: row };
+}
+// edits typed straight into the Projects tab: stamp the date, 100% on Completed, and log it
+function onProjectEdit(e) {
+  try {
+    const sh = e.range.getSheet(); if (sh.getName() !== PROJ_TAB) return;
+    const r = e.range.getRow(), c = e.range.getColumn(); if (r < 2 || (c !== 3 && c !== 4) || e.range.getNumRows() > 1) return;
+    const name = String(sh.getRange(r, 1).getValue()).trim(); if (!name) return;
+    const now = new Date(), status = String(sh.getRange(r, 3).getValue());
+    if (status === 'Completed') sh.getRange(r, 4).setValue(100);
+    sh.getRange(r, 6).setValue(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    sh.getRange(r, 10).setValue(Utilities.formatDate(now, 'Asia/Kolkata', 'yyyy-MM-dd HH:mm'));
+    plogSheet_().appendRow([new Date(now.getFullYear(), now.getMonth(), now.getDate()), Utilities.formatDate(now, 'Asia/Kolkata', 'HH:mm'),
+      name, status, sh.getRange(r, 4).getValue(), '(edited in sheet)']);
+  } catch (err) { console.warn(err); }
+}
+// run once: creates the Projects + Project_Log tabs and the edit trigger
+function setupProjects() {
+  projectSheet_(); plogSheet_();
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'onProjectEdit').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('onProjectEdit').forSpreadsheet(SHEET_ID).onEdit().create();
+  Logger.log('Projects tab ready');
 }
 
 /* ------- automatic Correct / Wrong at 3:45 PM for plain stock / index entries ------- */
