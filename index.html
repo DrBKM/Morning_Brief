@@ -90,6 +90,29 @@
   .installbar button{background:var(--amber); border:none; color:#181205; font-weight:600; padding:7px 14px; border-radius:4px; font-size:12.5px; cursor:pointer;}
   .installbar button.x{background:transparent; color:var(--muted); padding:6px 8px;}
   .tabbar{display:none;}
+  .occtl{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:10px;}
+  .ocstats{display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-bottom:10px;}
+  .ocstats div{background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:8px 10px;}
+  .ocstats span{display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
+  .ocstats b{font-family:'IBM Plex Mono',monospace; font-size:16px;}
+  .occhart{overflow-x:auto;} .occhart svg{display:block; min-width:640px; width:100%; height:auto;}
+  .oclegend{display:flex; gap:16px; font-size:12px; color:var(--muted); margin-top:6px;}
+  .oclegend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:middle;}
+  .oclegend i.dash{background:none; border-left:2px dashed var(--amber); width:2px; height:12px;}
+  .cashgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; margin-bottom:14px;}
+  .cashgrid div{background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:10px 12px;}
+  .cashgrid h4{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:4px;}
+  .cashgrid b{font-family:'IBM Plex Mono',monospace; font-size:20px;} .cashgrid small{display:block; color:var(--muted); font-size:12px;}
+  .ptbl{width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px;}
+  .ptbl th{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:8px; border-bottom:1px solid var(--border);}
+  .ptbl td{padding:9px 8px; border-bottom:1px solid var(--border);} .ptbl .r{text-align:right; font-family:'IBM Plex Mono',monospace;}
+  .ptbl td.who{font-weight:700;} .ptbl td.bearc{text-align:right; width:24%;} .ptbl td.bullc{width:24%;}
+  .ptbl .lab{display:inline-block; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:700; color:#fff; white-space:nowrap;}
+  .ptbl .chgm{display:none;}
+  @media (max-width:640px){ .ptbl{min-width:0; font-size:12.5px;} .ptbl .lng{display:none;} .ptbl th,.ptbl td{padding:7px 4px;}
+    .ptbl .lab{padding:3px 5px; font-size:11px; white-space:normal;} .ptbl td.bearc,.ptbl td.bullc{width:auto;} .ptbl .c6{display:none;} .ptbl small.chgm{display:block; font-size:11px;} }
+  .ptbl .chgm.up{color:var(--green);} .ptbl .chgm.down{color:var(--red);}
+  .ptbl .lab.bear{background:#B5524C;} .ptbl .lab.bull{background:#3B8D55;} .ptbl td.ind{text-align:center; color:var(--muted);}
   .jobfilter{display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 10px;}
   .jobfilter button,.hab-btns button{background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer;}
   .jobfilter button.on{border-color:var(--amber); color:var(--amber);}
@@ -253,7 +276,7 @@
     <div class="hero-greet" id="heroGreet">Good morning</div>
     <div class="hero-sub"><span id="heroDate"></span> · market opens 9:15 AM IST</div>
     <nav class="hero-chips">
-      <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
+      <a href="#sec-markets">Sensex &amp; Nifty</a><a href="#sec-oc">Option chain</a><a href="#sec-fii">FII / DII</a><a href="#sec-watch">Watchlist</a><a href="#sec-journal">Trade decisions</a>
       <a href="#sec-jobs">Physics jobs</a><a href="#sec-research">Research</a><a href="#sec-tasks">Tasks</a><a href="#sec-mail">Emails</a>
     </nav>
     <nav class="hero-chips quick" aria-label="Quick links">
@@ -287,7 +310,7 @@
 
 <main>
 
-  <div class="band span12" id="grp-markets" style="background-image:url(assets/band-markets.svg)"><h3>Markets today</h3><p>Overnight news, central banks, Sensex &amp; Nifty and stocks in focus</p></div>
+  <div class="band span12" id="grp-markets" style="background-image:url(assets/band-markets.svg)"><h3>Markets today</h3><p>Overnight news, Sensex &amp; Nifty, option chain, FII/DII and stocks in focus</p></div>
   <section class="card span8">
     <h2>1 · Overnight Global Events &amp; Sentiment <span class="tag manual" id="tagGlobal">fill in daily</span></h2>
     <p class="sub">Auto-filled by GitHub Actions at 8:05 AM IST from RSS headlines — edit freely, it's overwritten fresh each morning.</p>
@@ -345,9 +368,29 @@
     </ul>
   </section>
 
+  <section class="card span12" id="sec-oc">
+    <h2>5 · Option Chain — Open Interest <span class="tag live" id="ocTag">NSE · last close</span></h2>
+    <p class="sub">Call and put open interest by strike for the nearest expiry, from NSE's option chain. Big put OI often acts as support, big call OI as resistance.</p>
+    <div class="occtl"><div class="jobfilter" id="ocSym"><button class="on" data-s="nifty">NIFTY</button><button data-s="banknifty">BANK NIFTY</button></div>
+      <div class="jobfilter" id="ocMode"><button class="on" data-m="oi">Open interest</button><button data-m="chg">Change in OI</button></div></div>
+    <div class="ocstats" id="ocStats"></div>
+    <div class="occhart" id="ocChart"><p class="empty">Appears after the next morning run.</p></div>
+    <div class="oclegend"><span><i style="background:var(--green)"></i>Put OI</span><span><i style="background:var(--red)"></i>Call OI</span><span><i class="dash"></i>Spot</span></div>
+  </section>
+
+  <section class="card span12" id="sec-fii">
+    <h2>6 · FII / DII Activity &amp; Participant OI <span class="tag live" id="fiiTag">NSE</span></h2>
+    <p class="sub">Cash-market buying and selling, and who holds which side of index futures and options (NSE participant-wise open interest).</p>
+    <div class="cashgrid" id="cashGrid"></div>
+    <div class="tblwrap"><table class="ptbl" id="pTbl"><thead><tr><th>Who</th><th>Segment</th><th class="r">Bearish</th><th>Bullish</th><th class="r">Net OI</th><th class="r c6">Change</th></tr></thead>
+      <tbody><tr><td colspan="6" class="empty">Appears after the next morning run.</td></tr></tbody></table></div>
+    <p class="sub" style="margin-top:8px">Bullish side = futures bought, or calls bought + puts sold. Bearish side = futures sold, or puts bought + calls sold.
+      Labels come from the bullish share of positions (53–58% mild, 58–65% medium, above 65% strong; the same in reverse for bearish). They are this page's own rule, not Sensibull's.</p>
+  </section>
+
   <div class="band span12" id="grp-trading" style="background-image:url(assets/band-trading.svg)"><h3>My trading</h3><p>Watchlist from FFA_TIE and your trade decisions</p></div>
   <section class="card span12" id="sec-watch">
-    <h2>5 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
+    <h2>7 · My Watchlist — FFA_TIE <span class="tag manual" id="tagWatch">private</span></h2>
     <p class="sub">From your Google Sheet. Fundamentals come from Screener.in and are re-checked every 15 days (new stocks the next morning). Prices are last close; news is from the last 3 days, summarised by Claude.
       The lean is a news-based note, not advice. It is also written into the sheet's News and Action columns (only in empty cells or old 🤖 notes).</p>
     <div class="tblwrap"><table class="wtbl" id="watchTbl">
@@ -357,7 +400,7 @@
   </section>
 
   <section class="card span12" id="sec-journal">
-    <h2>6 · Trade Decisions <span class="tag manual" id="tagJournal">private · saved to Google Sheet</span></h2>
+    <h2>8 · Trade Decisions <span class="tag manual" id="tagJournal">private · saved to Google Sheet</span></h2>
     <p class="sub">Write your decision and the points behind it before the trade. Mark Correct / Wrong at the end of the day
       (plain stock or index entries are also marked automatically at 3:45 PM if you turned that on). Everything is saved in the <b>Trade_Journal</b> tab.</p>
     <div class="jform">
@@ -379,7 +422,7 @@
 
   <div class="band span12" id="grp-global" style="background-image:url(assets/band-global.svg)"><h3>Global markets</h3><p>Gold, currency, bonds, crude and world indices</p></div>
   <section class="card span6">
-    <h2>7 · Gold, Currency, Bonds, Crude <span class="tag live" id="commodTag">live · finnhub</span></h2>
+    <h2>9 · Gold, Currency, Bonds, Crude <span class="tag live" id="commodTag">live · finnhub</span></h2>
     <p class="sub">Auto-refreshes every 5 minutes once an API key is saved.</p>
     <div class="ticker-row"><span class="name">Gold (XAU/USD)</span><span class="price" id="q_gold">—</span></div>
     <div class="ticker-row"><span class="name">Crude (WTI, USO proxy)</span><span class="price" id="q_oil">—</span></div>
@@ -389,7 +432,7 @@
   </section>
 
   <section class="card span6">
-    <h2>8 · Global Markets <span class="tag live" id="globalTag">live · finnhub</span></h2>
+    <h2>10 · Global Markets <span class="tag live" id="globalTag">live · finnhub</span></h2>
     <p class="sub">Wall Street close, Asia overnight, Europe/London pre-open countdown.</p>
     <div class="ticker-row"><span class="name">Nasdaq 100 (QQQ)</span><span class="price" id="q_nasdaq">—</span></div>
     <div class="ticker-row"><span class="name">S&amp;P 500 (SPY)</span><span class="price" id="q_spx">—</span></div>
@@ -411,41 +454,41 @@
 
   <div class="band span12" id="grp-science" style="background-image:url(assets/band-science.svg)"><h3>Science &amp; career</h3><p>Physics jobs and the week's research in your fields</p></div>
   <section class="card span6" id="sec-jobs">
-    <h2>9 · Jobs — Faculty, Postdoc &amp; Industry <span class="tag live" id="tagJobs">India ₹1 L+ · abroad ₹5 L+ /month</span></h2>
+    <h2>11 · Jobs — Faculty, Postdoc &amp; Industry <span class="tag live" id="tagJobs">India ₹1 L+ · abroad ₹5 L+ /month</span></h2>
     <p class="sub">Nanomagnetism, magnonics, spintronics, AI/ML and quantum computing: faculty (incl. private institutes), postdocs and company R&amp;D, found by Claude's web search this morning. Always check the official advert before applying.</p>
     <div class="jobfilter" id="jobFilter"><button class="on" data-f="">All</button><button data-f="Faculty">Faculty</button><button data-f="Postdoc">Postdoc</button><button data-f="Industry">Industry</button><button data-f="India">India</button><button data-f="Abroad">Abroad</button></div>
     <ul class="feed" id="jobList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <section class="card span6" id="sec-research">
-    <h2>10 · Research Radar <span class="tag live">last 7 days</span></h2>
+    <h2>12 · Research Radar <span class="tag live">last 7 days</span></h2>
     <p class="sub">Nanomagnetism · Magnonics · Spintronics · AI · Quantum computing, from leading journals and arXiv.</p>
     <ul class="feed" id="paperList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <div class="band span12" id="grp-day" style="background-image:url(assets/band-day.svg)"><h3>My day</h3><p>Tasks, events, emails, daily habits and health log</p></div>
   <section class="card span6" id="sec-tasks">
-    <h2>11 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
+    <h2>13 · Today's Tasks <span class="tag manual" id="tagTasks">private</span></h2>
     <p class="sub">From your Google Sheet: due today, overdue and still-running tasks.</p>
     <p class="empty" id="taskLock">Unlock with your passphrase (bar at the top).</p>
     <ul class="feed" id="taskList"></ul>
   </section>
 
   <section class="card span6">
-    <h2>12 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
+    <h2>14 · Local Events <span class="tag live" id="tagArea">near you</span></h2>
     <p class="sub">Worthwhile events in the next 7 days.</p>
     <ul class="feed" id="eventList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
 
   <section class="card span12" id="sec-mail">
-    <h2>13 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
+    <h2>15 · Important Emails <span class="tag manual">private · last 24 h</span></h2>
     <p class="sub">Important or starred Gmail that may need you today. Unlocks with the passphrase bar at the top.</p>
     <ul class="feed" id="mailList"><li class="empty">Locked.</li></ul>
     <p class="sub" style="margin-top:10px;"><a href="#" onclick="lockAgain();return false;">Lock again / forget passphrase on this device</a></p>
   </section>
 
   <section class="card span12" id="sec-habits">
-    <h2>14 · Daily Habits — WRYTINGS <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>16 · Daily Habits — WRYTINGS <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">Tap once for ✓ done, twice for ✗ not done, three times to clear. Saved in the <b>Habits</b> tab, which also counts them for any period.</p>
     <div class="hab-today">
       <input type="date" id="habDate">
@@ -464,7 +507,7 @@
   </section>
 
   <section class="card span12" id="sec-sugar">
-    <h2>15 · Diabetes Log <span class="tag manual">private · saved to Google Sheet</span></h2>
+    <h2>17 · Diabetes Log <span class="tag manual">private · saved to Google Sheet</span></h2>
     <p class="sub">Add a reading here or type it straight into the <b>Diabetes</b> tab. Averages are worked out for you, here and in the sheet.</p>
     <div class="jform sugar">
       <input type="date" id="sgDate"><input type="time" id="sgTime">
@@ -628,6 +671,7 @@ async function loadBriefing(){
       if(q.chg!=null){ c.textContent=(q.chg>=0?'▲ ':'▼ ')+fmt(Math.abs(q.chg))+' ('+(q.pct>=0?'+':'')+q.pct+'%) vs prior day'; c.style.color=q.chg>=0?'var(--green)':'var(--red)'; }
     }
     if(b.indices){ spark('sparkSensex',b.indices.sensex); spark('sparkNifty',b.indices.nifty); }
+    DERIV=b.derivs||null; drawOC(); drawFII();
     document.getElementById('briefTime').textContent=genTime.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 
     if(b.regime_hint){
@@ -933,6 +977,55 @@ function drawSugar(){
 }
 document.getElementById('habDate').value=isoToday(); document.getElementById('sgDate').value=isoToday();
 habButtons();
+
+// ---------- option chain chart + FII/DII ----------
+let DERIV=null, OCSYM='nifty', OCMODE='oi';
+const fmtL=n=>{ if(n==null||isNaN(n)) return '—'; const a=Math.abs(n), sg=n<0?'-':'';
+  return a>=1e7?sg+(a/1e7).toFixed(2)+'Cr':a>=1e5?sg+(a/1e5).toFixed(2)+'L':sg+Math.round(a).toLocaleString('en-IN'); };
+function drawOC(){
+  const box=document.getElementById('ocChart'), st=document.getElementById('ocStats'), d=DERIV&&DERIV[OCSYM];
+  if(!d){ box.innerHTML='<p class="empty">Option chain not available this morning (NSE may have blocked the request).</p>'; st.innerHTML=''; return; }
+  document.getElementById('ocTag').textContent='NSE · '+(d.time||'last close');
+  st.innerHTML=[['Spot',d.spot.toLocaleString('en-IN')],['Expiry',d.expiry],['PCR',d.pcr],['Max pain',d.max_pain],['Resistance (max call OI)',d.res],['Support (max put OI)',d.sup],
+    ['Call OI change',fmtL(d.chg_call)],['Put OI change',fmtL(d.chg_put)]].map(([a,b])=>`<div><span>${a}</span><b>${esc(b)}</b></div>`).join('');
+  const S=d.strikes, W=1000, H=320, padL=46, padB=46, padT=14, n=S.length, bw=(W-padL-10)/n;
+  const vals=S.flatMap(x=>OCMODE==='oi'?[x.poi,x.coi]:[x.pchg,x.cchg]);
+  const mx=Math.max(1,...vals.map(v=>Math.max(0,v))), mn=Math.min(0,...vals);
+  const Y=v=>padT+(mx-v)/(mx-mn)*(H-padT-padB), y0=Y(0);
+  let g='';
+  for(let t=0;t<=4;t++){ const v=mn+(mx-mn)*t/4, y=Y(v); g+=`<line x1="${padL}" x2="${W-10}" y1="${y}" y2="${y}" stroke="#ffffff" stroke-opacity=".06"/><text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="11" fill="#7C8B99">${fmtL(v)}</text>`; }
+  S.forEach((x,i)=>{
+    const cx=padL+i*bw, w=bw*0.36, pv=OCMODE==='oi'?x.poi:x.pchg, cv=OCMODE==='oi'?x.coi:x.cchg;
+    const bar=(v,xx,col,lab)=>{ const y=Math.min(Y(v),y0), h=Math.abs(Y(v)-y0); return `<rect x="${xx.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h,0.5).toFixed(1)}" fill="${col}" rx="1.5"><title>${x.k} ${lab}: ${fmtL(v)}</title></rect>`; };
+    g+=bar(pv,cx+bw*0.12,'#3ED18C','Put')+bar(cv,cx+bw*0.5,'#FF5F5F','Call');
+    if(i%2===0||n<=14) g+=`<text x="${(cx+bw/2).toFixed(1)}" y="${H-padB+16}" text-anchor="end" font-size="11" fill="${x.k===d.atm?'#E8A33D':'#AAB7C4'}" transform="rotate(-40 ${(cx+bw/2).toFixed(1)} ${H-padB+16})">${x.k}</text>`;
+  });
+  const k0=S[0].k, k1=S[S.length-1].k, sx=padL+((d.spot-k0)/((k1-k0)||1))*(bw*(n-1))+bw/2;
+  g+=`<line x1="${sx}" x2="${sx}" y1="${padT}" y2="${H-padB}" stroke="#E8A33D" stroke-dasharray="5 4" stroke-width="1.5"/><text x="${sx+5}" y="${padT+12}" font-size="12" fill="#E8A33D">Spot ${d.spot}</text>`;
+  g+=`<line x1="${padL}" x2="${W-10}" y1="${y0}" y2="${y0}" stroke="#7C8B99" stroke-opacity=".5"/>`;
+  setTimeout(()=>{ box.scrollLeft=Math.max(0,(sx/W)*box.scrollWidth-box.clientWidth/2); },0);
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(d.symbol)} open interest by strike">${g}</svg>`;
+}
+function drawFII(){
+  const P=DERIV&&DERIV.participants, C=DERIV&&DERIV.cash;
+  document.getElementById('cashGrid').innerHTML=(C||[]).map(c=>`<div><h4>${esc(c.who)} cash · ${esc(c.date)}</h4><b class="${c.net>=0?'up':'down'}" style="color:${c.net>=0?'var(--green)':'var(--red)'}">${c.net>=0?'+':''}${Math.round(c.net).toLocaleString('en-IN')} Cr</b>
+    <small>Bought ${Math.round(c.buy).toLocaleString('en-IN')} Cr · Sold ${Math.round(c.sell).toLocaleString('en-IN')} Cr</small></div>`).join('')||'<p class="empty">FII/DII cash figures not available this morning.</p>';
+  const tb=document.querySelector('#pTbl tbody');
+  if(!P){ tb.innerHTML='<tr><td colspan="6" class="empty">Participant data not available this morning.</td></tr>'; return; }
+  document.getElementById('fiiTag').textContent='NSE · '+P.date+(P.prev?' (change vs '+P.prev+')':'');
+  let last='';
+  tb.innerHTML=P.rows.map(r=>{
+    const strength=Math.min(1,Math.abs(r.ratio-0.5)/0.25), w=Math.round(30+70*strength), bull=/Bullish/.test(r.label), ind=r.label==='Indecisive';
+    const labHtml=`<span class="lab ${bull?'bull':'bear'}" style="min-width:${w}%">${esc(r.label)}</span>`;
+    const cells=ind?`<td colspan="2" class="ind">Indecisive</td>`:bull?`<td class="bearc"></td><td class="bullc">${labHtml}</td>`:`<td class="bearc">${labHtml}</td><td class="bullc"></td>`;
+    const who=r.who===last?'':r.who; last=r.who;
+    return `<tr><td class="who">${esc(who)}</td><td>${esc(r.seg).replace('Index ','<span class="lng">Index </span>')}</td>${cells}<td class="r">${fmtL(r.net)}<small class="chgm ${r.chg>0?'up':r.chg<0?'down':''}">${r.chg==null?'':(r.chg>0?'+':'')+fmtL(r.chg)}</small></td><td class="r c6 ${r.chg>0?'up':r.chg<0?'down':''}">${r.chg==null?'—':fmtL(r.chg)}</td></tr>`;
+  }).join('');
+}
+document.getElementById('ocSym').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; OCSYM=b.dataset.s;
+  document.querySelectorAll('#ocSym button').forEach(x=>x.classList.toggle('on',x===b)); drawOC(); });
+document.getElementById('ocMode').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; OCMODE=b.dataset.m;
+  document.querySelectorAll('#ocMode button').forEach(x=>x.classList.toggle('on',x===b)); drawOC(); });
 </script>
 <nav class="tabbar" aria-label="Sections">
   <a href="#grp-markets"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Markets</a>

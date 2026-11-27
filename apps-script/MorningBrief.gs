@@ -40,6 +40,9 @@ function ss_() { return SpreadsheetApp.openById(SHEET_ID); }
 function doGet(e) {
   const p = (e && e.parameter) || {};
   const token = props_().getProperty('BRIEF_TOKEN');
+  if (token && p.token === token && p.what === 'nse') {   // GitHub Action: NSE data when NSE blocks GitHub
+    return json_(nseFetch_(String(p.path || '')));
+  }
   if (token && p.token === token) {                       // GitHub Action: full morning data
     const res = { ok: true, tz: Session.getScriptTimeZone(), journalKey: journalKey_() };
     try { res.tasks = readTasks_(); } catch (err) { res.tasks = { error: String(err) }; }
@@ -316,6 +319,23 @@ function installAutoResult() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'autoResult').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('autoResult').timeBased().everyDays(1).atHour(15).nearMinute(45).inTimezone('Asia/Kolkata').create();
   Logger.log('autoResult will run every weekday around 3:45 PM IST');
+}
+
+/* ---------------- NSE data relay (only nseindia.com addresses) ---------------- */
+function nseFetch_(path) {
+  if (!/^\/(api\/[\w\-]+(\?[\w=&%.\-]*)?|content\/nsccl\/fao_participant_oi_\d{8}\.csv)$/.test(path)) return { ok: false, error: 'path not allowed' };
+  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+  const host = path.indexOf('/content/') === 0 ? 'https://nsearchives.nseindia.com' : 'https://www.nseindia.com';
+  let cookie = '';
+  if (host.indexOf('www.') > 0) {                 // NSE wants the cookies its own web page sets
+    const home = UrlFetchApp.fetch('https://www.nseindia.com/option-chain', { headers: { 'User-Agent': ua, 'Accept': 'text/html' }, muteHttpExceptions: true, followRedirects: true });
+    let sc = home.getAllHeaders()['Set-Cookie'] || [];
+    if (!Array.isArray(sc)) sc = [sc];
+    cookie = sc.map(c => String(c).split(';')[0]).join('; ');
+  }
+  const r = UrlFetchApp.fetch(host + path, { headers: { 'User-Agent': ua, 'Accept': 'application/json, text/plain, */*',
+    'Referer': 'https://www.nseindia.com/option-chain', 'Cookie': cookie }, muteHttpExceptions: true, followRedirects: true });
+  return { ok: r.getResponseCode() === 200, status: r.getResponseCode(), body: r.getContentText().slice(0, 2500000) };
 }
 
 /* ---------------- one-time helpers ---------------- */

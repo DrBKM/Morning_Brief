@@ -516,6 +516,161 @@ def write_watch_back(stocks):
         log(f"[warn] sheet write-back failed: {ex}")
 
 
+# ---------------------------------------------------------------- NSE derivatives: option chain, participant OI, FII/DII cash
+NSE_HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+           "Accept": "application/json, text/plain, */*", "Accept-Language": "en-IN,en;q=0.9",
+           "Referer": "https://www.nseindia.com/option-chain"}
+_NSE = None
+
+
+def nse_get(path):
+    """Text of an NSE address. Tries NSE directly, then through the Apps Script relay (NSE often blocks cloud servers)."""
+    global _NSE
+    archive = path.startswith("/content/")
+    try:
+        if archive:
+            for host in ("https://nsearchives.nseindia.com", "https://archives.nseindia.com"):
+                r = requests.get(host + path, headers=NSE_HDR, timeout=20)
+                if r.status_code == 200 and len(r.text) > 50:
+                    return r.text
+        else:
+            if _NSE is None:
+                _NSE = requests.Session(); _NSE.headers.update(NSE_HDR)
+                _NSE.get("https://www.nseindia.com/option-chain", timeout=20)
+            r = _NSE.get("https://www.nseindia.com" + path, timeout=25)
+            if r.status_code == 200 and r.text.strip()[:1] in "[{":
+                return r.text
+            log(f"[warn] NSE direct {path[:60]}: HTTP {r.status_code}")
+    except Exception as ex:
+        log(f"[warn] NSE direct {path[:60]}: {ex}")
+    if GAS_URL and GAS_TOKEN:
+        try:
+            d = requests.get(GAS_URL, params={"token": GAS_TOKEN, "what": "nse", "path": path}, timeout=90).json()
+            if d.get("ok") and (archive or d.get("body", "").strip()[:1] in "[{"):
+                return d["body"]
+            log(f"[warn] NSE via Apps Script {path[:60]}: {d.get('status') or d.get('error')}")
+        except Exception as ex:
+            log(f"[warn] NSE via Apps Script {path[:60]}: {ex}")
+    return None
+
+
+def option_chain(sym):
+    rows, exp, under, stamp = [], "", None, ""
+    ci = nse_get(f"/api/option-chain-contract-info?symbol={sym}")
+    if ci:
+        try:
+            exps = json.loads(ci).get("expiryDates") or []
+            if exps:
+                exp = exps[0]
+                oc = nse_get(f"/api/option-chain-v3?type=Indices&symbol={sym}&expiry={requests.utils.quote(exp)}")
+                if oc:
+                    rec = json.loads(oc).get("records", {})
+                    rows, under, stamp = rec.get("data", []), rec.get("underlyingValue"), rec.get("timestamp", "")
+        except Exception as ex:
+            log(f"[warn] option chain v3 {sym}: {ex}")
+    if not rows:                                            # older NSE address
+        oc = nse_get(f"/api/option-chain-indices?symbol={sym}")
+        if oc:
+            d = json.loads(oc); rec = d.get("records", {})
+            exp = (rec.get("expiryDates") or [""])[0]
+            rows = (d.get("filtered") or {}).get("data") or [x for x in rec.get("data", []) if x.get("expiryDate") == exp]
+            under, stamp = rec.get("underlyingValue"), rec.get("timestamp", "")
+    if not rows:
+        return None
+    chain = {}
+    for x in rows:
+        k = x.get("strikePrice")
+        if k is None:
+            continue
+        ce, pe = x.get("CE") or {}, x.get("PE") or {}
+        under = under or ce.get("underlyingValue") or pe.get("underlyingValue")
+        c = chain.setdefault(float(k), {"k": float(k), "coi": 0, "cchg": 0, "poi": 0, "pchg": 0})
+        c["coi"] += ce.get("openInterest") or 0; c["cchg"] += ce.get("changeinOpenInterest") or 0
+        c["poi"] += pe.get("openInterest") or 0; c["pchg"] += pe.get("changeinOpenInterest") or 0
+    ks = sorted(chain)
+    if not ks or not under:
+        return None
+    tc, tp = sum(chain[k]["coi"] for k in ks), sum(chain[k]["poi"] for k in ks)
+    pain = min(ks, key=lambda K: sum(chain[s]["coi"] * max(0, K - s) + chain[s]["poi"] * max(0, s - K) for s in ks))
+    atm = min(ks, key=lambda k: abs(k - under)); i = ks.index(atm)
+    win = [chain[k] for k in ks[max(0, i - 12): i + 13]]
+    return {"symbol": sym, "expiry": exp, "spot": round(float(under), 2), "time": stamp, "atm": atm,
+            "pcr": round(tp / tc, 2) if tc else None, "max_pain": pain,
+            "res": max(ks, key=lambda k: chain[k]["coi"]), "sup": max(ks, key=lambda k: chain[k]["poi"]),
+            "chg_call": sum(chain[k]["cchg"] for k in ks), "chg_put": sum(chain[k]["pchg"] for k in ks), "strikes": win}
+
+
+def oi_label(bull, bear):
+    r = bull / (bull + bear) if bull + bear else 0.5
+    for cut, lab in ((0.65, "Strong Bullish"), (0.58, "Medium Bullish"), (0.53, "Mild Bullish"), (0.47, "Indecisive"),
+                     (0.42, "Mild Bearish"), (0.35, "Medium Bearish")):
+        if r >= cut if cut >= 0.53 else r > cut:
+            return lab, round(r, 3)
+    return "Strong Bearish", round(r, 3)
+
+
+def participant_oi():
+    import csv, io
+    found = []
+    for i in range(0, 12):
+        d = NOW - timedelta(days=i)
+        if d.weekday() >= 5:
+            continue
+        txt = nse_get(f"/content/nsccl/fao_participant_oi_{d:%d%m%Y}.csv")
+        if not txt or "Client Type" not in txt:
+            continue
+        lines = txt.splitlines(); h = next(j for j, l in enumerate(lines) if "Client Type" in l)
+        tab = {}
+        for row in csv.DictReader(io.StringIO("\n".join(lines[h:]))):
+            row = {(k or "").strip(): (v or "").strip() for k, v in row.items()}
+            who = row.get("Client Type", "").upper()
+            if who:
+                tab[who] = {k: float(v.replace(",", "") or 0) for k, v in row.items() if k != "Client Type" and re.match(r"^-?[\d,.]+$", v or "")}
+        found.append((d, tab))
+        if len(found) == 2:
+            break
+    if not found:
+        return None
+    (d1, t1), prev = found[0], (found[1] if len(found) > 1 else (None, {}))
+    def seg(t, who):
+        r = t.get(who) or {}
+        g = lambda n: r.get(n, 0)
+        return {"fut": (g("Future Index Long"), g("Future Index Short")),
+                "opt": (g("Option Index Call Long") + g("Option Index Put Short"), g("Option Index Put Long") + g("Option Index Call Short"))}
+    out = []
+    for who, name in (("FII", "FII"), ("DII", "DII"), ("PRO", "Pro"), ("CLIENT", "Client")):
+        a, b = seg(t1, who), seg(prev[1], who)
+        for key, segname in (("fut", "Index Futures"), ("opt", "Index Options")):
+            bull, bear = a[key]; lab, ratio = oi_label(bull, bear)
+            net = bull - bear; pnet = b[key][0] - b[key][1]
+            out.append({"who": name, "seg": segname, "bull": bull, "bear": bear, "net": net,
+                        "chg": (net - pnet) if prev[0] else None, "label": lab, "ratio": ratio})
+    return {"date": d1.strftime("%a %d %b %Y"), "prev": prev[0].strftime("%a %d %b") if prev[0] else "", "rows": out}
+
+
+def fii_dii_cash():
+    t = nse_get("/api/fiidiiTradeReact")
+    if not t:
+        return None
+    out = []
+    for x in json.loads(t):
+        cat = "DII" if "DII" in x.get("category", "") else "FII/FPI" if "FII" in x.get("category", "") else x.get("category", "")
+        num = lambda v: float(str(v).replace(",", "") or 0)
+        out.append({"who": cat, "date": x.get("date", ""), "buy": num(x.get("buyValue")), "sell": num(x.get("sellValue")), "net": num(x.get("netValue"))})
+    return out
+
+
+def fetch_derivatives():
+    d = {}
+    for sym in ("NIFTY", "BANKNIFTY"):
+        d[sym.lower()] = step(f"option chain {sym}", option_chain, sym)
+    d["participants"] = step("participant OI", participant_oi)
+    d["cash"] = step("FII/DII cash", fii_dii_cash)
+    log(f"[info] derivatives: nifty={'ok' if d['nifty'] else 'none'} banknifty={'ok' if d['banknifty'] else 'none'} "
+        f"participants={'ok' if d['participants'] else 'none'} cash={'ok' if d['cash'] else 'none'}")
+    return d
+
+
 # ---------------------------------------------------------------- main
 def step(name, fn, *a, default=None):
     try:
@@ -532,6 +687,7 @@ def main():
 
     out = {"generated_at": datetime.now(timezone.utc).isoformat(), "local_area": LOCAL_AREA}
     out["indices"] = fetch_indices()
+    out["derivs"] = fetch_derivatives()
     log(f"[info] indices: {out['indices']}")
 
     headlines = fetch_headlines()
