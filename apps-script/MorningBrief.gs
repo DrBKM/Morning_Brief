@@ -25,8 +25,16 @@ const HABITS = [['W', 'Writing 200 words on my day (30 min)'], ['R', 'Reading a 
   ['N', 'Sharpening negotiation skills (15 min)'], ['G', 'Measuring gravity of the present situation (15 min)'],
   ['S', 'Spirituality and health (mental and physical)']];
 const SUGAR_TYPES = ['Fasting', 'Post-meal (2 hr)', 'Pre-meal', 'Bedtime', 'Random'];
-const J_HEAD = ['ID', 'Date', 'Time', 'Instrument', 'Direction', 'Entry', 'Stop loss', 'Target',
+const J_BASE = ['ID', 'Date', 'Time', 'Instrument', 'Direction', 'Entry', 'Stop loss', 'Target',
                 'Points / reason', 'Confidence', 'Result', 'Exit / close', 'Result note', 'Updated'];
+// TRENDS checklist: columns O..T (✓ / ✗), score in U, GO / NO-GO in V, report from column X
+const CHECK = [['T', 'Trend with momentum'], ['R', 'Risk & reward'], ['E', 'Entry time & candlestick pattern'],
+               ['N', 'No overtrade / aggressive trade'], ['D', 'Disciplined & without distractions'],
+               ['S', 'Stop button: no time & money waste']];
+const CHECK_HEAD = CHECK.map(c => c[0] + ': ' + c[1]);
+const J_HEAD = J_BASE.concat(CHECK_HEAD, ['Checklist (of 6)', 'Verdict']);
+const QUOTE = 'Trade the market, not your mind';
+const KEY_LINE = 'Key: Thousand times one punch';
 
 function props_() { return PropertiesService.getScriptProperties(); }
 function journalKey_() {
@@ -152,11 +160,65 @@ function journalSheet_() {
   let sh = ss.getSheetByName(JOURNAL_TAB);
   if (!sh) {
     sh = ss.insertSheet(JOURNAL_TAB);
-    sh.getRange(1, 1, 1, J_HEAD.length).setValues([J_HEAD]).setFontWeight('bold').setBackground('#e8eefc');
+    sh.getRange(1, 1, 1, J_BASE.length).setValues([J_BASE]).setFontWeight('bold').setBackground('#e8eefc');
     sh.setFrozenRows(1);
   }
+  if (String(sh.getRange(1, 15).getValue()) !== CHECK_HEAD[0]) setupChecklist_(sh);
   return sh;
 }
+// adds the TRENDS checklist columns, GO / NO-GO verdict and the report block (runs once by itself)
+function setupChecklist_(sh) {
+  if (sh.getMaxColumns() < 30) sh.insertColumnsAfter(sh.getMaxColumns(), 30 - sh.getMaxColumns());
+  sh.getRange(1, 15, 1, 6).setValues([CHECK_HEAD]).setFontWeight('bold').setBackground('#fff4d6').setWrap(true);
+  sh.getRange('U1').setFormula('={"Checklist (of 6)";ARRAYFORMULA(IF(A2:A="",,MMULT((O2:T="✓")*1,SEQUENCE(6,1,1,0))))}');
+  sh.getRange('V1').setFormula('={"Verdict";ARRAYFORMULA(IF(A2:A="",,IF(MMULT((O2:T<>"")*1,SEQUENCE(6,1,1,0))=0,"—",IF(U2:U=6,"GO","NO-GO"))))}');
+  sh.getRange('U1:V1').setFontWeight('bold').setBackground('#fff4d6');
+  sh.getRange('O2:T2000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['✓', '✗'], true).build())
+    .setHorizontalAlignment('center');
+  sh.setColumnWidths(15, 6, 95);
+  sh.getRange('B2:B').setNumberFormat('yyyy-mm-dd');
+  const v = sh.getRange('V2:V2000'), rules = sh.getConditionalFormatRules();
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('GO').setBackground('#c9f2d6').setFontColor('#11683a').setBold(true).setRanges([v]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('NO-GO').setBackground('#fbd5d2').setFontColor('#9b1c14').setBold(true).setRanges([v]).build());
+  sh.setConditionalFormatRules(rules);
+  writeReport_(sh);
+}
+function writeReport_(sh) {
+  const per = ',$B$2:$B,">="&$Y$3,$B$2:$B,"<="&$AA$3';
+  const cnt = x => 'COUNTIFS($A$2:$A,"<>"' + per + x + ')';
+  const win = x => { const c = cnt(x + ',$K$2:$K,"Correct*"'), w = cnt(x + ',$K$2:$K,"Wrong*"');
+    return '=IFERROR(TEXT(' + c + '/(' + c + '+' + w + '),"0%"),"–")'; };
+  sh.getRange('X1:AA1').merge().setValue('“' + QUOTE + '”').setFontSize(15).setFontWeight('bold').setFontColor('#ffffff')
+    .setBackground('#14213d').setHorizontalAlignment('center');
+  sh.getRange('X2:AA2').merge().setValue(KEY_LINE).setFontStyle('italic').setFontWeight('bold').setFontColor('#14213d')
+    .setBackground('#fcd34d').setHorizontalAlignment('center');
+  sh.getRange('X3:AA3').setValues([['Report from', '', 'to', '']]).setFontWeight('bold');
+  sh.getRange('Y3').setFormula('=EOMONTH(TODAY(),-1)+1').setNumberFormat('yyyy-mm-dd').setBackground('#fff9c4');
+  sh.getRange('AA3').setFormula('=TODAY()').setNumberFormat('yyyy-mm-dd').setBackground('#fff9c4');
+  const rows = [
+    ['Decision report', 'Count', 'Win rate', ''],
+    ['Decisions logged', '=' + cnt(''), win(''), ''],
+    ['GO (all 6 ✓)', '=' + cnt(',$V$2:$V,"GO"'), win(',$V$2:$V,"GO"'), ''],
+    ['NO-GO (any ✗)', '=' + cnt(',$V$2:$V,"NO-GO"'), win(',$V$2:$V,"NO-GO"'), ''],
+    ['Traded on NO-GO (rule broken)', '=' + cnt(',$V$2:$V,"NO-GO",$E$2:$E,"<>No trade",$K$2:$K,"<>Not taken"'), '', ''],
+    ['Correct', '=' + cnt(',$K$2:$K,"Correct*"'), '', ''],
+    ['Wrong', '=' + cnt(',$K$2:$K,"Wrong*"'), '', ''],
+    ['Still open', '=' + cnt(',$K$2:$K,"Open"'), '', ''],
+    ['Average checklist score (of 6)', '=IFERROR(ROUND(AVERAGEIFS($U$2:$U,$A$2:$A,"<>",$V$2:$V,"<>—"' + per + '),1),"–")', '', ''],
+    ['', '', '', ''],
+    ['Checklist item', 'Times ✓', 'Win rate when ✓', 'Win rate when ✗']
+  ];
+  CHECK.forEach((c, i) => { const col = String.fromCharCode(79 + i), r = '$' + col + '$2:$' + col;
+    rows.push([CHECK_HEAD[i], '=' + cnt(',' + r + ',"✓"'), win(',' + r + ',"✓"'), win(',' + r + ',"✗"')]); });
+  const rg = sh.getRange(5, 24, rows.length, 4);
+  rg.setValues(rows.map(r => r.map(x => String(x).charAt(0) === '=' ? '' : x)));
+  rows.forEach((r, i) => r.forEach((x, j) => { if (String(x).charAt(0) === '=') sh.getRange(5 + i, 24 + j).setFormula(x); }));
+  [5, 15].forEach(r => sh.getRange(r, 24, 1, 4).setFontWeight('bold').setBackground('#e8eefc'));
+  sh.getRange(5, 25, rows.length, 3).setHorizontalAlignment('center');
+  sh.setColumnWidth(24, 250); sh.setColumnWidths(25, 3, 110);
+}
+// run this from the editor if you ever want to rebuild the checklist columns and the report
+function setupChecklist() { setupChecklist_(journalSheet_()); Logger.log('Checklist and report ready in ' + JOURNAL_TAB); }
 function readJournal_(n) {
   const sh = journalSheet_(), last = sh.getLastRow();
   if (last < 2) return [];
@@ -170,7 +232,8 @@ function addTrade_(t) {
   const id = 'T' + Utilities.formatDate(now, tz, 'yyMMddHHmmss');
   sh.appendRow([id, Utilities.formatDate(now, tz, 'yyyy-MM-dd'), Utilities.formatDate(now, tz, 'HH:mm'),
     clip(t.instrument, 40).toUpperCase(), clip(t.direction, 20), clip(t.entry, 20), clip(t.sl, 20), clip(t.target, 20),
-    clip(t.points, 1500), clip(t.confidence, 20), 'Open', '', '', '']);
+    clip(t.points, 1500), clip(t.confidence, 20), 'Open', '', '', ''].concat(
+    CHECK.map((c, i) => { const m = String(t.check || '').charAt(i); return m === '✓' || m === '✗' ? m : ''; })));
   return { ok: true, id: id };
 }
 function setResult_(b) {

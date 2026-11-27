@@ -1,5 +1,5 @@
 /* 8:30 Desk service worker: works offline with the last briefing, always tries the network first for fresh data. */
-const VERSION = 'desk-v5';                 // change this after editing the page so phones pick up the new version
+const VERSION = 'desk-v6';                 // change this after editing the page so phones pick up the new version
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'data/briefing.json', 'assets/logo.svg', 'assets/banner.svg',
   'assets/band-markets.svg', 'assets/band-trading.svg', 'assets/band-global.svg', 'assets/band-science.svg',
   'assets/band-day.svg', 'assets/icon-192.png', 'assets/icon-512.png'];

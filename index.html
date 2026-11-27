@@ -239,6 +239,15 @@
   .jform input,.jform select,.jform textarea{background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:7px 9px; border-radius:4px; font-size:13px; font-family:inherit;}
   .jform textarea{grid-column:1/-1; min-height:76px;}
   .jform .btnsm{justify-self:start;}
+  .tcheck{grid-column:1/-1; border:1px solid var(--border); border-radius:6px; padding:10px 12px; background:var(--panel2);}
+  .tq{font-weight:700; font-size:15px; color:var(--amber); margin-bottom:8px;} .tq small{display:block; font-weight:600; font-style:italic; color:var(--muted); font-size:12.5px;}
+  .titems{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;} @media (max-width:760px){ .titems{grid-template-columns:1fr;} }
+  .titems button{text-align:left; background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:5px; padding:8px 10px; font:inherit; font-size:13px; cursor:pointer;}
+  .titems button b{color:var(--amber); font-size:15px;} .titems button::before{content:'○ '; color:var(--muted);}
+  .titems button.on{border-color:var(--green); background:rgba(62,209,140,.12);} .titems button.on::before{content:'✓ '; color:var(--green);}
+  .tverdict{margin-top:8px; font-size:13px; color:var(--muted);} .tverdict b.go{color:var(--green);} .tverdict b.nogo{color:var(--red);}
+  .vbadge{display:inline-block; margin-top:4px; padding:1px 7px; border-radius:3px; font-size:11px; font-weight:700;}
+  .vbadge.go{background:rgba(62,209,140,.18); color:var(--green);} .vbadge.nogo{background:rgba(255,95,95,.18); color:var(--red);}
   .jscore{font-size:13px; color:var(--muted); margin:4px 0 8px;}
   .wtbl td.fund{font-size:12.5px; color:#C9D3DC; min-width:240px; max-width:360px;}
   .pts{white-space:pre-line; color:#C9D3DC; font-size:12.5px; max-width:420px;}
@@ -410,6 +419,18 @@
       <input id="jSl" placeholder="Stop loss" inputmode="decimal">
       <input id="jTgt" placeholder="Target" inputmode="decimal">
       <select id="jConf"><option value="">Confidence</option><option>High</option><option>Medium</option><option>Low</option></select>
+      <div class="tcheck" id="tCheck">
+        <div class="tq">“Trade the market, not your mind”<small>Key: Thousand times one punch</small></div>
+        <div class="titems">
+          <button type="button" data-i="0"><b>T</b>rend with momentum</button>
+          <button type="button" data-i="1"><b>R</b>isk &amp; reward</button>
+          <button type="button" data-i="2"><b>E</b>ntry time &amp; candle pattern</button>
+          <button type="button" data-i="3"><b>N</b>o overtrade / aggressive trade</button>
+          <button type="button" data-i="4"><b>D</b>isciplined, no distractions</button>
+          <button type="button" data-i="5"><b>S</b>top button: no time &amp; money waste</button>
+        </div>
+        <div class="tverdict" id="tVerdict">Tick each point that is true for this trade: 0 / 6</div>
+      </div>
       <textarea id="jPts" placeholder="Points for this decision, one per line, e.g.&#10;• Trend up on 15-min, above VWAP&#10;• FII net buyers yesterday&#10;• Regime: trending up"></textarea>
       <button class="btnsm" id="jSave" onclick="addTrade()">Save decision to sheet</button><span id="jMsg" class="sub"></span>
     </div>
@@ -806,7 +827,15 @@ function renderWatch(list){
 }
 
 // ---------- trade journal (Google Sheet via Apps Script) ----------
-let JR={}, JROWS=[];
+let JR={}, JROWS=[], TCK=[0,0,0,0,0,0];
+function drawCheck(){
+  document.querySelectorAll('#tCheck .titems button').forEach(b=>b.classList.toggle('on',!!TCK[+b.dataset.i]));
+  const n=TCK.reduce((a,b)=>a+b,0);
+  document.getElementById('tVerdict').innerHTML=n===6?`Checklist 6 / 6 → <b class="go">GO</b>: one clean punch.`
+    :`Checklist ${n} / 6 → <b class="nogo">NO-GO</b>: missing ${['Trend','Risk & reward','Entry','No overtrade','Discipline','Stop button'].filter((x,i)=>!TCK[i]).join(', ')}. Wait for the next setup.`;
+}
+document.getElementById('tCheck').addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if(!b) return; TCK[+b.dataset.i]^=1; drawCheck(); });
+drawCheck();
 async function jcall(body){
   const r=await fetch(JR.url,{method:'POST',body:JSON.stringify(Object.assign({jkey:JR.key},body))});
   return r.json();
@@ -828,13 +857,15 @@ function drawJournal(){
   const t=JROWS.filter(r=>r.Date===today), c=t.filter(r=>/^correct/i.test(r.Result)).length, w=t.filter(r=>/^wrong/i.test(r.Result)).length;
   const all=JROWS.filter(r=>/^(correct|wrong)/i.test(r.Result)), ac=all.filter(r=>/^correct/i.test(r.Result)).length;
   document.getElementById('jScore').innerHTML=`Today: <b>${t.length}</b> decisions · <span style="color:var(--green)">${c} correct</span> · <span style="color:var(--red)">${w} wrong</span>`+
-    (all.length?` &nbsp;|&nbsp; Last ${JROWS.length} entries hit rate: <b>${Math.round(ac/all.length*100)}%</b> (${ac}/${all.length})`:'');
+    (all.length?` &nbsp;|&nbsp; Last ${JROWS.length} entries hit rate: <b>${Math.round(ac/all.length*100)}%</b> (${ac}/${all.length})`:'')+
+    ['GO','NO-GO'].map(v=>{ const x=all.filter(r=>r.Verdict===v), k=x.filter(r=>/^correct/i.test(r.Result)).length;
+      return x.length?` &nbsp;|&nbsp; ${v}: <b>${Math.round(k/x.length*100)}%</b> (${k}/${x.length})`:''; }).join('');
   if(!JROWS.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No decisions yet. Add your first one above.</td></tr>'; return; }
   tb.innerHTML=JROWS.slice(0,40).map(r=>{
     const res=r.Result||'Open', opts=['Open','Correct','Wrong','Not taken'];
     const sel=opts.map(o=>`<option${res.toLowerCase().startsWith(o.toLowerCase())?' selected':''}>${o}</option>`).join('');
     return `<tr data-id="${esc(r.ID)}"><td class="num">${esc(r.Date)}<br>${esc(r.Time)}</td><td><b>${esc(r.Instrument)}</b><div class="m">${esc(r.Confidence)}</div></td>
-      <td>${esc(r.Direction)}</td><td class="num">${esc(r.Entry)} / ${esc(r['Stop loss'])} / ${esc(r.Target)}</td>
+      <td>${esc(r.Direction)}${r.Verdict==='GO'||r.Verdict==='NO-GO'?`<br><span class="vbadge ${r.Verdict==='GO'?'go':'nogo'}">${r.Verdict} · ${esc(r['Checklist (of 6)'])}/6</span>`:''}</td><td class="num">${esc(r.Entry)} / ${esc(r['Stop loss'])} / ${esc(r.Target)}</td>
       <td class="pts">${esc(r['Points / reason'])}</td>
       <td><select class="jRes">${sel}</select> <input class="jExit" placeholder="exit" value="${esc(r['Exit / close'])}">
         <button class="btnsm" onclick="saveResult(this)">Save</button>
@@ -847,9 +878,9 @@ async function addTrade(){
   if(!v('jInst')){ msg.textContent='Enter the instrument.'; return; }
   const b=document.getElementById('jSave'); b.disabled=true; msg.textContent='Saving…';
   try{
-    const r=await jcall({action:'add',t:{instrument:v('jInst'),direction:v('jDir'),entry:v('jEntry'),sl:v('jSl'),target:v('jTgt'),confidence:v('jConf'),points:v('jPts')}});
+    const r=await jcall({action:'add',t:{instrument:v('jInst'),direction:v('jDir'),entry:v('jEntry'),sl:v('jSl'),target:v('jTgt'),confidence:v('jConf'),points:v('jPts'),check:TCK.map(x=>x?'✓':'✗').join('')}});
     if(!r.ok) throw new Error(r.error);
-    msg.textContent='Saved ✓'; ['jInst','jEntry','jSl','jTgt','jPts'].forEach(id=>document.getElementById(id).value='');
+    msg.textContent='Saved ✓'; ['jInst','jEntry','jSl','jTgt','jPts'].forEach(id=>document.getElementById(id).value=''); TCK=[0,0,0,0,0,0]; drawCheck();
     await loadJournal();
   }catch(e){ msg.textContent='Not saved: '+e.message; }
   b.disabled=false;
