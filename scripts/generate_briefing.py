@@ -284,6 +284,48 @@ deadlines, salaries or dates: write "see advert" if unknown.
     return d
 
 
+JOB_KEEP_DAYS = 30     # a job stays on the page this long after it was first found (unless its deadline passes)
+
+
+def _deadline_passed(text):
+    """True only when the deadline text holds a clear date that is before today."""
+    t = str(text or "")
+    for fmt_re, fmt in ((r"\d{1,2} [A-Za-z]{3,9},? \d{4}", None), (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d"),
+                        (r"\d{1,2}[./-]\d{1,2}[./-]\d{4}", None)):
+        m = re.search(fmt_re, t)
+        if not m:
+            continue
+        s = m.group(0).replace(",", "")
+        for f in ([fmt] if fmt else ["%d %B %Y", "%d %b %Y", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y"]):
+            try:
+                return datetime.strptime(s, f).date() < NOW.date()
+            except ValueError:
+                pass
+    return False
+
+
+def merge_jobs(new, old):
+    """Rolling job list: today's finds first, then earlier finds that are still open (max 40)."""
+    today = NOW.strftime("%Y-%m-%d")
+    key = lambda j: (j.get("url") or "").rstrip("/").lower() or (j.get("post", "") + "|" + j.get("institution", "")).lower()
+    seen, out = set(), []
+    first = {key(j): j.get("seen") for j in (old or []) if j.get("seen")}
+    for j in (new or []):
+        j["seen"] = first.get(key(j)) or today
+    for j in list(new or []) + list(old or []):
+        k = key(j)
+        if not k or k in seen or _deadline_passed(j.get("deadline")):
+            continue
+        try:
+            if (NOW.date() - datetime.strptime(j.get("seen", today)[:10], "%Y-%m-%d").date()).days > JOB_KEEP_DAYS:
+                continue
+        except ValueError:
+            pass
+        seen.add(k)
+        out.append(j)
+    return out[:40]
+
+
 def private_digest(p):
     tasks, emails = p.get("tasks") or {}, p.get("emails") or []
     mail_block = "\n".join(f"[{i}] {m.get('date','')} | {m.get('from','')} | {m.get('subject','')} :: {m.get('snippet','')}"
@@ -862,7 +904,8 @@ def main():
     else:
         log("[info] jobs/events: reusing the last search (searched on Mon, Wed and Fri)")
         je = {}
-    out["jobs"] = je.get("jobs") or prev.get("jobs", [])
+    out["jobs"] = merge_jobs(je.get("jobs"), prev.get("jobs", []))
+    log(f"[info] jobs: {len(je.get('jobs') or [])} new, {len(out['jobs'])} on the page")
     out["events"] = je.get("events") or prev.get("events", [])
     out["jobs_checked"] = prev.get("jobs_checked", "") if not je else NOW.strftime("%Y-%m-%d")
 

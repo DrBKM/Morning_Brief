@@ -68,6 +68,7 @@ function doGet(e) {
     try { out.habits = readHabits_(400); } catch (err) { out.habitError = String(err); }
     try { out.sugar = readSugar_(400); } catch (err) { out.sugarError = String(err); }
     try { out.projects = readProjects_(); } catch (err) { out.projectError = String(err); }
+    try { out.pis = readPis_(); } catch (err) { out.piError = String(err); }
     try { out.ritual = readRitual_(10); } catch (err) { out.ritualError = String(err.message || err); }
     return json_(out);
   }

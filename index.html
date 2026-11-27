@@ -520,7 +520,7 @@
   <div class="band span12" id="grp-science" style="background-image:url(assets/band-science.svg)"><h3>Science &amp; career</h3><p>Physics jobs and the week's research in your fields</p></div>
   <section class="card span6" id="sec-jobs">
     <h2>11 · Jobs — Faculty, Postdoc &amp; Industry <span class="tag live" id="tagJobs">India ₹1 L+ · abroad ₹5 L+ /month</span></h2>
-    <p class="sub">Nanomagnetism, magnonics, spintronics, AI/ML and quantum computing: faculty (incl. private institutes), postdocs and company R&amp;D, found by Claude's web search this morning. Always check the official advert before applying.</p>
+    <p class="sub">Nanomagnetism, magnonics, spintronics, AI/ML and quantum computing: faculty (incl. private institutes), postdocs and company R&amp;D, found by Claude's web search (Mon, Wed, Fri) and kept for 30 days or until the last date passes. Always check the official advert before applying.</p>
     <div class="jobfilter" id="jobFilter"><button class="on" data-f="">All</button><button data-f="Faculty">Faculty</button><button data-f="Postdoc">Postdoc</button><button data-f="Industry">Industry</button><button data-f="India">India</button><button data-f="Abroad">Abroad</button></div>
     <ul class="feed" id="jobList"><li class="empty">Appears after the next morning run.</li></ul>
   </section>
@@ -812,8 +812,8 @@ function fill(id, arr, row, emptyMsg){
 function renderPublic(b){
   fill('jobList', b.jobs, j=>`<li data-type="${esc(j.type||'Faculty')}" data-region="${esc(j.region||'India')}"><span class="pill ${j.type==='Industry'?'go':j.type==='Postdoc'?'amb':''}">${esc(j.type||'Faculty')}</span><span class="pill">${esc(j.region||'India')}</span>${link(j.url, j.post||'Assistant Professor (Physics)')}
     <div class="m">${esc(j.institution)}${j.location?' · '+esc(j.location):''}</div>
-    <div class="w"><span class="pill go">${esc(j.pay||'see advert')}</span><span class="pill hot">last date: ${esc(j.deadline||'see advert')}</span></div></li>`,
-    'No matching open posts found this morning.');
+    <div class="w"><span class="pill go">${esc(j.pay||'see advert')}</span><span class="pill hot">last date: ${esc(j.deadline||'see advert')}</span>${j.seen?`<span class="pill">found ${esc(j.seen.slice(8,10)+'/'+j.seen.slice(5,7))}</span>`:''}</div></li>`,
+    'No open posts in the list yet.');
   fill('paperList', b.research, p=>`<li><span class="pill amb">${esc(p.topic)}</span>${link(p.link, p.title)}
     <div class="m">${esc(p.source)}</div><div class="w">${esc(p.why)}</div></li>`, 'No new papers matched this week.');
   fill('eventList', b.events, e=>`<li>${link(e.url, e.name)}<div class="m">${esc(e.when)}${e.where?' · '+esc(e.where):''}</div>
@@ -1030,6 +1030,9 @@ document.getElementById('jobFilter').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return; const f=b.dataset.f;
   document.querySelectorAll('#jobFilter button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('#jobList li[data-type]').forEach(li=>{ li.hidden=!!f && li.dataset.type!==f && li.dataset.region!==f; });
+  const L=document.getElementById('jobList'), none=L.querySelectorAll('li[data-type]').length&&!L.querySelector('li[data-type]:not([hidden])');
+  let m=document.getElementById('jobNone'); if(!m){ m=document.createElement('p'); m.id='jobNone'; m.className='empty'; L.after(m); }
+  m.textContent=none?'None in this filter.':'';
 });
 
 // ---------- daily habits (W R Y T I N G S) ----------
