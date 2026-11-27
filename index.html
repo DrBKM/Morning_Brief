@@ -984,7 +984,7 @@ const fmtL=n=>{ if(n==null||isNaN(n)) return '—'; const a=Math.abs(n), sg=n<0?
   return a>=1e7?sg+(a/1e7).toFixed(2)+'Cr':a>=1e5?sg+(a/1e5).toFixed(2)+'L':sg+Math.round(a).toLocaleString('en-IN'); };
 function drawOC(){
   const box=document.getElementById('ocChart'), st=document.getElementById('ocStats'), d=DERIV&&DERIV[OCSYM];
-  if(!d){ box.innerHTML='<p class="empty">Option chain not available this morning (NSE may have blocked the request).</p>'; st.innerHTML=''; return; }
+  if(!d){ box.innerHTML='<p class="empty">'+(DERIV?'Option chain not available this morning (NSE may have blocked the request).':'Appears after the next morning run.')+'</p>'; st.innerHTML=''; return; }
   document.getElementById('ocTag').textContent='NSE · '+(d.time||'last close');
   st.innerHTML=[['Spot',d.spot.toLocaleString('en-IN')],['Expiry',d.expiry],['PCR',d.pcr],['Max pain',d.max_pain],['Resistance (max call OI)',d.res],['Support (max put OI)',d.sup],
     ['Call OI change',fmtL(d.chg_call)],['Put OI change',fmtL(d.chg_put)]].map(([a,b])=>`<div><span>${a}</span><b>${esc(b)}</b></div>`).join('');
